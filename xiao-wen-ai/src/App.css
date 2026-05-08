@@ -1,0 +1,99 @@
+/* App.css — 根布局：顶栏、左右双栏、面板与反馈区高度 */
+/* ===== App layout ===== */
+.app {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* header */
+.app-header { text-align: center; }
+.app-logo {
+  display: inline-block;
+  font-size: 28px; font-weight: 800; letter-spacing: -.5px;
+  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.app-subtitle {
+  margin: 4px 0 0; font-size: 14px;
+  color: var(--text-tertiary); font-weight: 400;
+}
+
+/* body two-column */
+.app-body {
+  display: flex; gap: 24px; flex: 1; min-height: 0;
+}
+
+/* panels */
+.panel {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.03);
+  display: flex;
+  flex-direction: column;
+}
+.panel--left {
+  flex: 1;
+  min-width: 0;
+  gap: 20px;
+}
+.panel--right {
+  flex: 0 0 340px;
+}
+
+.panel-title {
+  margin: 0 0 14px; font-size: 16px; font-weight: 600;
+  color: var(--text-primary); flex-shrink: 0;
+}
+
+.panel-content {
+  flex: 1; min-height: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  overflow: auto;
+}
+.panel-content--chat,
+.panel-content--chart,
+.panel-content--music {
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 0;
+  padding: 18px;
+}
+
+.feedback-stack {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+
+.panel-content--chat .feedback-stack,
+.panel-content--chart .feedback-stack,
+.panel-content--music .feedback-stack,
+.panel-content--weather .feedback-stack,
+.panel-content--image .feedback-stack {
+  justify-content: flex-start;
+}
+
+/* responsive */
+@media (max-width: 960px) {
+  .app-body { flex-direction: column; }
+  .panel--left { flex: none; }
+}

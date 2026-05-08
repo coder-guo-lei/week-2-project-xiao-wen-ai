@@ -1,0 +1,15 @@
+/* WeatherCard.css — 渐变背景天气大卡片 */
+/* ===== Weather Card ===== */
+.wc {
+  width: 100%; height: 100%; border-radius: 18px;
+  color: #fff; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+}
+.wc-icon { font-size: 52px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.2)); }
+.wc-city { font-size: 26px; font-weight: 600; margin: 0; text-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.wc-weather { font-size: 36px; font-weight: 700; }
+.wc-temp { font-size: 22px; opacity: .95; }
+.wc-detail { font-size: 15px; opacity: .85; display: flex; gap: 8px; align-items: center; }
+.wc-dot { opacity: .5; }

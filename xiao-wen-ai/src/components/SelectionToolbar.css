@@ -1,0 +1,89 @@
+/* SelectionToolbar.css — 划词悬浮条定位与按钮组 */
+.selection-toolbar {
+  position: absolute;
+  z-index: 1000;
+  transform: translate(-50%, -100%);
+  width: min(420px, calc(100vw - 32px));
+  color: #eef2ff;
+  background: rgba(17, 24, 39, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+}
+
+.selection-toolbar__actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  flex-wrap: wrap;
+}
+
+.selection-toolbar button {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  color: #eef2ff;
+  background: rgba(99, 102, 241, 0.86);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.selection-toolbar button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(129, 140, 248, 0.95);
+}
+
+.selection-toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.selection-toolbar__result {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 12px 12px;
+  max-height: 180px;
+  overflow: auto;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.selection-toolbar__result-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.selection-toolbar__result-actions button {
+  margin-left: 0;
+  padding: 6px 9px;
+  background: rgba(16, 185, 129, 0.88);
+}
+
+.selection-toolbar__result-actions span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .selection-toolbar {
+    transform: translate(-50%, calc(-100% - 4px));
+  }
+
+  .selection-toolbar__actions {
+    gap: 5px;
+  }
+
+  .selection-toolbar button {
+    flex: 1;
+    min-width: 72px;
+  }
+}

@@ -1,0 +1,66 @@
+/* CommandInput.css — 多行输入、语音/唤醒/发送按钮、常用指令芯片 */
+/* ===== Command Input ===== */
+.ci { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+.ci-textarea {
+  width: 100%; height: 110px; padding: 14px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px; font-size: 14px; resize: none;
+  background: var(--card-bg); color: var(--text-primary);
+  outline: none; transition: border-color .2s;
+  font-family: inherit;
+}
+.ci-textarea:focus { border-color: var(--accent); }
+.ci-textarea::placeholder { color: var(--text-tertiary); }
+
+.ci-actions { display: flex; gap: 10px; }
+.ci-btn {
+  flex: 1; height: 42px; border: none; border-radius: 10px;
+  color: #fff; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: opacity .2s, transform .15s;
+}
+.ci-btn:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+.ci-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.ci-btn--voice { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.ci-btn--voice.is-recording {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  box-shadow: 0 10px 24px rgba(239, 68, 68, .25);
+}
+.ci-btn--wake  { background: #6b7280; }
+.ci-btn--wake.is-on { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 12px rgba(239, 68, 68, .2); }
+.ci-btn--send  { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+.ci-history {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.ci-history button {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--text-secondary);
+  background: var(--card-bg-alt);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, transform .15s;
+}
+
+.ci-history button:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ci-history button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}

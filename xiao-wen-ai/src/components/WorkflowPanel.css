@@ -1,0 +1,79 @@
+/* WorkflowPanel.css — 步骤条序号与文案 */
+.workflow-panel {
+  width: 100%;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 80, 0.94));
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.26);
+}
+
+.workflow-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #f8fafc;
+}
+
+.workflow-panel__header strong {
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+.workflow-panel__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.workflow-panel__steps {
+  display: grid;
+  gap: 12px;
+}
+
+.workflow-step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.workflow-step__index {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.36);
+}
+
+.workflow-step__body {
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.workflow-step__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 5px;
+}
+
+.workflow-step__detail {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #334155;
+  word-break: break-word;
+}

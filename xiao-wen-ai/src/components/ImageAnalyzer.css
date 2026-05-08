@@ -1,0 +1,148 @@
+/* ImageAnalyzer.css — 拖拽高亮、预览图、追问输入、上传按钮 */
+.image-analyzer {
+  position: relative;
+  width: 100%;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px dashed rgba(96, 165, 250, 0.38);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(59, 130, 246, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 80, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 42px rgba(15, 23, 42, 0.18);
+  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.image-analyzer::after {
+  content: '';
+  position: absolute;
+  right: -44px;
+  top: -44px;
+  width: 128px;
+  height: 128px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.12);
+  pointer-events: none;
+}
+
+.image-analyzer--dragging {
+  border-color: #22d3ee;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(14, 165, 233, 0.28), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 64, 110, 0.95));
+  transform: translateY(-2px);
+  box-shadow: 0 18px 46px rgba(14, 165, 233, 0.16);
+}
+
+.image-analyzer__main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.image-analyzer__icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 16px;
+  font-size: 24px;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.22), rgba(34, 211, 238, 0.18));
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.16);
+}
+
+.image-analyzer h4 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.image-analyzer p {
+  margin: 0;
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.65;
+}
+
+.image-analyzer__preview {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  margin-top: 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.image-analyzer__question {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.58);
+  color: #f8fafc;
+  font: inherit;
+  line-height: 1.6;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.image-analyzer__question::placeholder {
+  color: #94a3b8;
+}
+
+.image-analyzer__question:focus {
+  border-color: rgba(34, 211, 238, 0.58);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.image-analyzer__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.image-analyzer__actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 18px;
+  cursor: pointer;
+  color: white;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.28);
+  transition: transform 0.16s, box-shadow 0.16s, opacity 0.16s;
+}
+
+.image-analyzer__actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(14, 165, 233, 0.32);
+}
+
+.image-analyzer__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.image-analyzer__actions span {
+  font-size: 12px;
+  color: #94a3b8;
+}

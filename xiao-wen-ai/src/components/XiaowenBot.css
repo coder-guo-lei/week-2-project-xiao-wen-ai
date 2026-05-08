@@ -1,0 +1,418 @@
+/* XiaowenBot.css — fixed 吉祥物、拖拽态、SVG 脸与多 mood 嘴型 */
+/* 外层不占交互，仅卡片可拖 */
+.xiaowen-bot {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  width: 112px;
+  user-select: none;
+  touch-action: none;
+}
+
+.xiaowen-bot__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: auto;
+  cursor: grab;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 包住 SVG + 标签：惯性时整身旋转，晕眩时左右晃 */
+.xiaowen-bot__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform-origin: 50% 45%;
+  will-change: transform;
+}
+
+.xiaowen-bot__clothes {
+  transform-origin: 60px 96px;
+  transform-box: fill-box;
+  transition: transform 0.08s ease-out;
+}
+
+/* 拖拽：西服被抓着来回扯（方向随 --cloth-pull-x/y） */
+.xiaowen-bot--dragging .xiaowen-bot__clothes {
+  animation: xiaowen-clothes-grab 0.36s ease-in-out infinite alternate;
+}
+
+/* 抓住时：整个人略下沉、低头感；与 mood 的 transform 由更高优先级覆盖 */
+.xiaowen-bot__card.xiaowen-bot__card--grabbed {
+  transform: scale(1.06) translateY(14px) rotate(6deg) !important;
+  transition: none;
+  opacity: 0.98;
+}
+
+.xiaowen-bot--dragging .xiaowen-bot__svg {
+  transform: translateY(5px) rotate(2deg);
+  transform-origin: 50% 40%;
+  transition: transform 0.12s ease-out;
+}
+
+.xiaowen-bot__card--grabbed .xiaowen-bot__svg {
+  animation: none;
+}
+
+.xiaowen-bot__card--grabbed .xiaowen-bot__brow--l {
+  transform: rotate(22deg) translate(1px, 5px) !important;
+}
+
+.xiaowen-bot__card--grabbed .xiaowen-bot__brow--r {
+  transform: rotate(-22deg) translate(-1px, 5px) !important;
+}
+
+/* 迷糊眼：眼白 + 偏心瞳孔放在 orbit 组内，整组旋转 = 眼珠在打转 */
+.xiaowen-bot__pupil-orbit {
+  transform-origin: 0 0;
+}
+
+.xiaowen-bot--inertia .xiaowen-bot__pupil-orbit {
+  animation: xiaowen-pupil-orbit-spin 0.22s linear infinite;
+}
+
+.xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit {
+  animation: xiaowen-pupil-orbit-spin 0.48s linear infinite;
+}
+
+@keyframes xiaowen-pupil-orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 内点反向慢转一点，更像「晕」而不是整块色块在转 */
+.xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
+.xiaowen-bot--dizzy .xiaowen-bot__pupil-dazed {
+  transform-origin: 1.6px -0.4px;
+  animation: xiaowen-pupil-inner-counter 0.36s linear infinite reverse;
+}
+
+@keyframes xiaowen-pupil-inner-counter {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.xiaowen-bot--inertia .xiaowen-bot__pupil-sclera,
+.xiaowen-bot--dizzy .xiaowen-bot__pupil-sclera {
+  filter: blur(0.2px);
+}
+
+@keyframes xiaowen-clothes-grab {
+  0% {
+    transform: rotate(calc(var(--cloth-pull-x, 0) * 0.18deg)) translateX(calc(var(--cloth-pull-x, 0) * 0.06px)) translateY(0);
+  }
+  100% {
+    transform: rotate(calc(var(--cloth-pull-x, 0) * -0.22deg - 4deg)) translateX(calc(var(--cloth-pull-x, 0) * -0.04px)) translateY(4px);
+  }
+}
+
+/* 惯性飞出：整身快速旋转，像被甩晕 */
+.xiaowen-bot--inertia .xiaowen-bot__figure {
+  animation: xiaowen-figure-spin 0.1s linear infinite;
+}
+
+@keyframes xiaowen-figure-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 停下后晕一会：慢晃 + 轻微眩晕感 */
+.xiaowen-bot--dizzy .xiaowen-bot__figure {
+  animation: xiaowen-figure-dizzy 0.38s ease-in-out infinite;
+}
+
+@keyframes xiaowen-figure-dizzy {
+  0%,
+  100% {
+    transform: rotate(-7deg) translateX(-2px);
+  }
+  50% {
+    transform: rotate(7deg) translateX(2px);
+  }
+}
+
+.xiaowen-bot--dizzy .xiaowen-bot__svg {
+  filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22)) blur(0.35px);
+}
+
+/* ========== 靠边探头：缩进屏幕只露一部分 + 微幅伸缩 ========== */
+.xiaowen-bot--peek-left,
+.xiaowen-bot--peek-right {
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.xiaowen-bot--peek-left .xiaowen-bot__figure {
+  transform-origin: 72% 32%;
+  animation: xiaowen-peek-nudge-left 2.1s ease-in-out infinite;
+}
+
+.xiaowen-bot--peek-right .xiaowen-bot__figure {
+  transform-origin: 28% 32%;
+  animation: xiaowen-peek-nudge-right 2.1s ease-in-out infinite;
+}
+
+@keyframes xiaowen-peek-nudge-left {
+  0%,
+  100% {
+    transform: translateX(-66px) translateY(5px);
+  }
+  50% {
+    transform: translateX(-54px) translateY(2px);
+  }
+}
+
+@keyframes xiaowen-peek-nudge-right {
+  0%,
+  100% {
+    transform: translateX(66px) translateY(5px);
+  }
+  50% {
+    transform: translateX(54px) translateY(2px);
+  }
+}
+
+/* 探头时弱化随机 mood 的整卡旋转，略低头躲藏 */
+.xiaowen-bot__card--peek.xiaowen-bot__card--curious,
+.xiaowen-bot__card--peek.xiaowen-bot__card--sleepy,
+.xiaowen-bot__card--peek.xiaowen-bot__card--surprised,
+.xiaowen-bot__card--peek.xiaowen-bot__card--happy {
+  transform: translateY(10px) scale(1.05) rotate(0deg) !important;
+  opacity: 1 !important;
+}
+
+.xiaowen-bot--peek-left .xiaowen-bot__card--peek {
+  transform: translateY(10px) rotate(-7deg) scale(1.06) !important;
+}
+
+.xiaowen-bot--peek-right .xiaowen-bot__card--peek {
+  transform: translateY(10px) rotate(7deg) scale(1.06) !important;
+}
+
+.xiaowen-bot__card--peek .xiaowen-bot__svg {
+  animation: none !important;
+}
+
+/* 探头眉：一高一挑 */
+.xiaowen-bot__card--peek .xiaowen-bot__brow--l {
+  transform: rotate(-16deg) translate(-2px, -3px) !important;
+}
+
+.xiaowen-bot__card--peek .xiaowen-bot__brow--r {
+  transform: rotate(18deg) translate(2px, -6px) !important;
+}
+
+/* 眼珠朝屏幕内侧瞄 */
+.xiaowen-bot--peek-left .xiaowen-bot__svg .xiaowen-bot__pupil-mount .xiaowen-bot__pupil {
+  transform: translate(5px, -1px);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.xiaowen-bot--peek-right .xiaowen-bot__svg .xiaowen-bot__pupil-mount .xiaowen-bot__pupil {
+  transform: translate(-5px, -1px);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.xiaowen-bot--peek-left .xiaowen-bot__label,
+.xiaowen-bot--peek-right .xiaowen-bot__label {
+  opacity: 0.4;
+  transform: scale(0.82);
+  letter-spacing: 0.12em;
+}
+
+.xiaowen-bot--dragging .xiaowen-bot__card:not(.xiaowen-bot__card--grabbed) {
+  cursor: grabbing;
+  transition: none;
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xiaowen-bot--dragging .xiaowen-bot__card:not(.xiaowen-bot__card--grabbed) {
+    transform: none;
+  }
+  .xiaowen-bot__card--grabbed {
+    transform: none !important;
+    opacity: 1;
+  }
+  .xiaowen-bot--dragging .xiaowen-bot__svg {
+    transform: none;
+  }
+  .xiaowen-bot--dragging .xiaowen-bot__clothes {
+    animation: none;
+  }
+  .xiaowen-bot--inertia .xiaowen-bot__figure,
+  .xiaowen-bot--dizzy .xiaowen-bot__figure {
+    animation: none;
+  }
+  .xiaowen-bot--dizzy .xiaowen-bot__svg {
+    filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22));
+  }
+  .xiaowen-bot--inertia .xiaowen-bot__pupil-orbit,
+  .xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit,
+  .xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
+  .xiaowen-bot--dizzy .xiaowen-bot__pupil-dazed {
+    animation: none;
+  }
+  .xiaowen-bot--peek-left .xiaowen-bot__figure,
+  .xiaowen-bot--peek-right .xiaowen-bot__figure {
+    animation: none;
+  }
+  .xiaowen-bot--peek-left .xiaowen-bot__figure {
+    transform: translateX(-60px) translateY(4px);
+  }
+  .xiaowen-bot--peek-right .xiaowen-bot__figure {
+    transform: translateX(60px) translateY(4px);
+  }
+}
+
+.xiaowen-bot__card--happy .xiaowen-bot__svg {
+  animation: xiaowen-bot-nod 0.65s ease;
+}
+
+@keyframes xiaowen-bot-nod {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(2px) rotate(-4deg); }
+  70% { transform: translateY(0) rotate(3deg); }
+}
+
+.xiaowen-bot__card--curious {
+  transform: rotate(-6deg);
+}
+
+.xiaowen-bot__card--sleepy {
+  transform: translateY(3px) rotate(2deg);
+  opacity: 0.92;
+}
+
+.xiaowen-bot__card--surprised {
+  transform: scale(1.06);
+}
+
+.xiaowen-bot__svg {
+  width: 112px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22));
+}
+
+.xiaowen-bot__pupil {
+  transition: cx 0.06s linear, cy 0.06s linear;
+}
+
+.xiaowen-bot__eyelid {
+  transition: ry 0.07s ease;
+}
+
+/* 默认只显示 neutral 嘴 */
+.xiaowen-bot__mouth {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.xiaowen-bot__mouth--neutral {
+  opacity: 1;
+}
+
+.xiaowen-bot__mouth--grabbed {
+  opacity: 0;
+}
+
+/* 抓住时只显示「被拎起」嘴型，隐藏其它 mood 嘴 */
+.xiaowen-bot__card--grabbed .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--grabbed) {
+  opacity: 0 !important;
+}
+
+.xiaowen-bot__card--grabbed .xiaowen-bot__mouth--grabbed {
+  opacity: 1 !important;
+}
+
+.xiaowen-bot__mouth--peek {
+  opacity: 0;
+}
+
+/* 探头专用嘴（椭圆好奇），盖住 mood 嘴 */
+.xiaowen-bot__card--peek .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--peek) {
+  opacity: 0 !important;
+}
+
+.xiaowen-bot__card--peek .xiaowen-bot__mouth--peek {
+  opacity: 1 !important;
+}
+
+.xiaowen-bot__card--happy .xiaowen-bot__mouth--neutral,
+.xiaowen-bot__card--curious .xiaowen-bot__mouth--neutral,
+.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--neutral,
+.xiaowen-bot__card--surprised .xiaowen-bot__mouth--neutral {
+  opacity: 0;
+}
+
+.xiaowen-bot__card--happy .xiaowen-bot__mouth--happy {
+  opacity: 1;
+}
+
+.xiaowen-bot__card--curious .xiaowen-bot__mouth--curious {
+  opacity: 1;
+}
+
+.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--sleepy {
+  opacity: 1;
+}
+
+.xiaowen-bot__card--surprised .xiaowen-bot__mouth--surprised {
+  opacity: 1;
+}
+
+/* 眉毛微调 */
+.xiaowen-bot__card--curious .xiaowen-bot__brow--r {
+  transform: translateY(-3px);
+}
+
+.xiaowen-bot__card--sleepy .xiaowen-bot__brow--l,
+.xiaowen-bot__card--sleepy .xiaowen-bot__brow--r {
+  transform: translateY(2px);
+}
+
+.xiaowen-bot__brow--l,
+.xiaowen-bot__brow--r {
+  transition: transform 0.25s ease;
+  transform-origin: center;
+}
+
+.xiaowen-bot__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xiaowen-bot__card,
+  .xiaowen-bot__pupil {
+    transition: none;
+  }
+  .xiaowen-bot__card--happy .xiaowen-bot__svg {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .xiaowen-bot {
+    width: 88px;
+  }
+  .xiaowen-bot__svg {
+    width: 88px;
+  }
+  .xiaowen-bot__label {
+    display: none;
+  }
+}

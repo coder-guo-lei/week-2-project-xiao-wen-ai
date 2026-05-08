@@ -1,0 +1,16 @@
+/* LogPanel.css — 右侧运行日志列表与滚动区 */
+/* ===== Log Panel ===== */
+.lp { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.lp-head {
+  margin: 0 0 10px; font-size: 15px; font-weight: 600;
+  color: var(--text-primary); flex-shrink: 0;
+}
+.lp-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 12px 14px;
+  background: var(--card-bg-alt);
+  font-size: 13px; line-height: 1.75;
+}
+.lp-ok { color: var(--text-secondary); }
+.lp-err { color: #ef4444; }
