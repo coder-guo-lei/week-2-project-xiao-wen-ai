@@ -7,6 +7,7 @@
 | 前端 | `xiao-wen-ai/`：React 18 + Vite |
 | 后端 | `backend/`：Flask，`/api/send-task` 统一指令入口 |
 | AI | 阿里云 DashScope（主）+ DeepSeek OpenAI 兼容接口（可选兜底）；文生图 / VL 依赖 DashScope |
+| 朗读 | 讯飞 `/api/tts`：可选超拟人（`XFYUN_SUPER_TTS_WS_URL`）或在线合成 v2 |
 | 数据与地图 | 高德 `AMAP_KEY`（`.env`）；农历换算 **zhdate** |
 | 时间与语义 | `LOCAL_TIMEZONE`；对话系统提示注入服务端「此刻」公历与农历锚点，减轻模型编造日期 |
 | 文档入口 | 仓库根目录 [README.md](README.md)，前端详见 [xiao-wen-ai/README.md](xiao-wen-ai/README.md) |

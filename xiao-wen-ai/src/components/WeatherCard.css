@@ -1,15 +1,111 @@
-/* WeatherCard.css — 渐变背景天气大卡片 */
-/* ===== Weather Card ===== */
+/* WeatherCard.css — 渐变背景天气卡片（高度随内容，避免底部大块留白） */
 .wc {
-  width: 100%; height: 100%; border-radius: 18px;
-  color: #fff; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px; text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  align-self: center;
+  border-radius: 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  text-align: center;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
-.wc-icon { font-size: 52px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.2)); }
-.wc-city { font-size: 26px; font-weight: 600; margin: 0; text-shadow: 0 2px 8px rgba(0,0,0,.2); }
-.wc-weather { font-size: 36px; font-weight: 700; }
-.wc-temp { font-size: 22px; opacity: .95; }
-.wc-detail { font-size: 15px; opacity: .85; display: flex; gap: 8px; align-items: center; }
-.wc-dot { opacity: .5; }
+.wc-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 22px 20px 18px;
+  flex-shrink: 0;
+}
+.wc-icon {
+  font-size: 44px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+.wc-city {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 4px 0 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.08em;
+}
+.wc-address {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  max-width: 100%;
+  padding: 0 12px;
+  margin-top: 2px;
+  opacity: 0.92;
+  letter-spacing: 0.02em;
+}
+.wc-weather {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+.wc-temp {
+  font-size: 20px;
+  opacity: 0.95;
+}
+.wc-detail {
+  font-size: 14px;
+  opacity: 0.88;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.wc-dot { opacity: 0.5; }
+
+.wc-panel {
+  text-align: left;
+  padding: 12px 16px 14px;
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  max-height: min(38vh, 200px);
+  overflow-y: auto;
+}
+.wc-travel.wc-panel {
+  max-height: min(42vh, 240px);
+}
+.wc-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.9;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+.wc-tip-list {
+  margin: 0;
+  padding-left: 1.05em;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.96;
+}
+.wc-tip-list li {
+  margin-bottom: 5px;
+}
+.wc-tip-list li:last-child {
+  margin-bottom: 0;
+}
+.wc-travel .wc-travel-body {
+  font-size: 13px;
+  line-height: 1.62;
+  opacity: 0.96;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

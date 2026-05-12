@@ -6,12 +6,13 @@
  *   - 包含 ❌ 的条目以红色高亮显示
  *   - 每次新增日志后自动滚动到底部
  * Props：
- *   logs {string[]} 日志文本数组，由父组件 App 维护
+ *   logs    {string[]} 日志文本数组，由父组件 App 维护
+ *   onClear {fn=}      点击「清空日志」时回调（可选）
  */
 import { useRef, useEffect } from 'react'
 import './LogPanel.css'
 
-export default function LogPanel({ logs }) {
+export default function LogPanel({ logs, onClear }) {
   // 指向可滚动容器，用于在 logs 变化时把 scrollTop 设到底部
   const bodyRef = useRef(null)
 
@@ -23,12 +24,23 @@ export default function LogPanel({ logs }) {
 
   return (
     <div className="lp">
-      <h3 className="lp-head">📋 运行日志</h3>
+      <div className="lp-toolbar">
+        <h3 className="lp-head">📋 运行日志</h3>
+        {typeof onClear === 'function' && (
+          <button type="button" className="lp-clear" onClick={onClear}>
+            清空日志
+          </button>
+        )}
+      </div>
       {/* 列表区：每条一行，含 ❌ 的加 lp-err 样式 */}
       <div className="lp-body" ref={bodyRef}>
-        {logs.map((item, i) => (
-          <div key={i} className={item.includes('❌') ? 'lp-err' : 'lp-ok'}>{item}</div>
-        ))}
+        {logs.length === 0 ? (
+          <div className="lp-empty">暂无运行记录</div>
+        ) : (
+          logs.map((item, i) => (
+            <div key={i} className={item.includes('❌') ? 'lp-err' : 'lp-ok'}>{item}</div>
+          ))
+        )}
       </div>
     </div>
   )

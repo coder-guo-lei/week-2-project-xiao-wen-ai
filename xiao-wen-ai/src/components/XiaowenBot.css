@@ -138,7 +138,7 @@
 }
 
 .xiaowen-bot--dizzy .xiaowen-bot__svg {
-  filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22)) blur(0.35px);
+  filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.28)) blur(0.35px);
 }
 
 /* ========== 靠边探头：缩进屏幕只露一部分 + 微幅伸缩 ========== */
@@ -253,7 +253,7 @@
     animation: none;
   }
   .xiaowen-bot--dizzy .xiaowen-bot__svg {
-    filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22));
+    filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.28));
   }
   .xiaowen-bot--inertia .xiaowen-bot__pupil-orbit,
   .xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit,
@@ -300,7 +300,7 @@
   width: 112px;
   height: auto;
   display: block;
-  filter: drop-shadow(0 14px 28px rgba(79, 70, 229, 0.22));
+  filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.26));
 }
 
 .xiaowen-bot__pupil {

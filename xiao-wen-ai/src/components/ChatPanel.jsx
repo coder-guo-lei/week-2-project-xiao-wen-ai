@@ -1,74 +1,23 @@
 /**
  * ChatPanel.jsx — 对话回复面板
  *
- * 功能：
- *   - 展示小文 AI 对闲聊类指令（笑话、故事、问答等）的文字回复
- *   - 在回复下方提供「复制全文」与朗读控制，朗读可选择男音 / 女音
- *   - 朗读时按句子高亮当前读到的位置
- *   - 使用浏览器 Web Speech API，音色由系统/浏览器可用中文语音决定
- * Props：
- *   reply {string} — 后端返回的对话文本，支持换行（pre-wrap）
+ * - 「朗读回复」：POST /api/tts（后端讯飞 WebSocket TTS，默认 WAV）
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
 import './ChatPanel.css'
 
-/** localStorage 键：用户上次选的朗读性别（女音 / 男音） */
-const VOICE_PREF_KEY = 'xiaowen_tts_voice_type'
-
-/**
- * 从浏览器提供的语音列表里挑一个尽量匹配「中文 + 男/女」的 Voice。
- * @param {SpeechSynthesisVoice[]} voices - speechSynthesis.getVoices()
- * @param {'male'|'female'} voiceType - 界面下拉框当前值
- */
-function pickChineseVoice(voices, voiceType) {
-  // 优先 lang/name 含 zh、cmn、yue 的语音；没有则退回全列表
-  const chineseVoices = voices.filter((voice) => /zh|cmn|yue/i.test(voice.lang || voice.name))
-  const candidates = chineseVoices.length ? chineseVoices : voices
-
-  const femaleHints = ['female', 'woman', 'xiaoxiao', 'xiaoyi', 'xiaobei', 'huihui', 'tingting', 'yaoyao', 'hanhan', '女']
-  const maleHints = ['male', 'man', 'yunxi', 'yunyang', 'kangkang', 'xiaogang', '男']
-  const hints = voiceType === 'male' ? maleHints : femaleHints
-
-  return candidates.find((voice) => hints.some((hint) => voice.name.toLowerCase().includes(hint))) || candidates[0] || null
+const VOICE_LABEL = {
+  female: '女声 · 默认（超拟人：聆小璇 / 经典：小燕）',
+  female_jiuxu: '女声 · 许久 / 聆玉昭',
 }
 
-/**
- * 按中文标点把整段 reply 切成「句块」，用于朗读 onboundary 时高亮对应 span。
- * @param {string} text
- */
-function splitReplyToSegments(text) {
-  if (!text) return []
-  const segments = []
-  const regex = /[^。！？!?；;\n]+[。！？!?；;]?|\n+/g
-  let match
-
-  while ((match = regex.exec(text)) !== null) {
-    segments.push({
-      text: match[0],
-      start: match.index,
-      end: match.index + match[0].length,
-    })
-  }
-
-  return segments.length ? segments : [{ text, start: 0, end: text.length }]
-}
-
-/** 根据朗读事件的 charIndex 落在哪一段，返回段下标 */
-function findActiveSegmentIndex(segments, charIndex) {
-  if (!segments.length || charIndex < 0) return -1
-  const exact = segments.findIndex((segment) => charIndex >= segment.start && charIndex < segment.end)
-  return exact >= 0 ? exact : segments.length - 1
-}
-
-/**
- * 把纯文本里的 http(s) 链接切成 React 片段，链接渲染为 <a>，其余为文本节点。
- * 注意：正则 lastIndex 在 split+test 组合下需谨慎；此处每段独立 test。
- */
+/** split 带捕获组时，偶数位片段为 URL；勿对 /g 正则反复 .test()，否则会因 lastIndex 漏匹配。 */
 function renderTextWithLinks(text) {
   const urlRegex = /(https?:\/\/[^\s，。！？；、]+)/g
   const parts = text.split(urlRegex)
   return parts.map((part, index) => {
-    if (urlRegex.test(part)) {
+    if (/^https?:\/\//.test(part)) {
       return (
         <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
           {part}
@@ -80,47 +29,20 @@ function renderTextWithLinks(text) {
 }
 
 export default function ChatPanel({ reply }) {
-  // ---------- 状态：朗读音色、可用语音列表、是否正在读、当前高亮句、复制成功提示 ----------
-  const [voiceType, setVoiceType] = useState(() => {
-    try {
-      return localStorage.getItem(VOICE_PREF_KEY) || 'female'
-    } catch {
-      return 'female'
-    }
-  })
+  const [voiceType, setVoiceType] = useState(() => getTtsVoiceFromStorage())
 
-  const [voices, setVoices] = useState([])
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [activeSegmentIndex, setActiveSegmentIndex] = useState(-1)
   const [copyDone, setCopyDone] = useState(false)
-  const bodyRef = useRef(null) // 可滚动正文容器，用于朗读时自动滚到当前句
-  const activeSegmentRef = useRef(null) // 当前高亮句对应的 span，用于 scrollIntoView 计算
-  const copyTimerRef = useRef(null) // 「已复制」2 秒后恢复的定时器 id
-
-  const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window // 是否支持 Web Speech 朗读
-  const selectedVoice = useMemo(() => pickChineseVoice(voices, voiceType), [voices, voiceType])
-  const replySegments = useMemo(() => splitReplyToSegments(reply || ''), [reply])
-
-  // 挂载时拉取语音列表；部分浏览器异步加载 voices，需监听 onvoiceschanged
-  useEffect(() => {
-    if (!canSpeak) return undefined
-
-    const loadVoices = () => setVoices(window.speechSynthesis.getVoices())
-    loadVoices()
-    window.speechSynthesis.onvoiceschanged = loadVoices
-
-    return () => {
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.onvoiceschanged = null
-    }
-  }, [canSpeak])
+  const [ttsError, setTtsError] = useState('')
+  const bodyRef = useRef(null)
+  const copyTimerRef = useRef(null)
+  const ttsAudioRef = useRef(null)
+  const ttsObjectUrlRef = useRef(null)
 
   const stopSpeaking = useCallback(() => {
-    if (!canSpeak) return
-    window.speechSynthesis.cancel()
+    cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
     setIsSpeaking(false)
-    setActiveSegmentIndex(-1)
-  }, [canSpeak])
+  }, [])
 
   useEffect(() => {
     try {
@@ -128,40 +50,19 @@ export default function ChatPanel({ reply }) {
     } catch { /* ignore */ }
   }, [voiceType])
 
-  // 朗读过程中：当前句滚进可视区域，避免长文时高亮句在视口外
   useEffect(() => {
-    if (!isSpeaking || !bodyRef.current || !activeSegmentRef.current) return
-
-    const body = bodyRef.current
-    const active = activeSegmentRef.current
-    const activeTop = active.offsetTop
-    const activeBottom = activeTop + active.offsetHeight
-    const visibleTop = body.scrollTop
-    const visibleBottom = visibleTop + body.clientHeight
-
-    if (activeTop < visibleTop + 12) {
-      body.scrollTop = Math.max(activeTop - 18, 0)
-    } else if (activeBottom > visibleBottom - 12) {
-      body.scrollTop = activeBottom - body.clientHeight + 18
-    }
-  }, [activeSegmentIndex, isSpeaking])
-
-  // 换一段新 reply 时：停掉上一轮朗读并重置高亮（避免旧 utterance 回调写状态）
-  useEffect(() => {
-    if (canSpeak) window.speechSynthesis.cancel()
-    const resetTimer = window.setTimeout(() => {
+    cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
+    queueMicrotask(() => {
       setIsSpeaking(false)
-      setActiveSegmentIndex(-1)
-    }, 0)
-    return () => window.clearTimeout(resetTimer)
-  }, [reply, canSpeak])
+      setTtsError('')
+    })
+  }, [reply])
 
-  // 卸载时清掉「已复制」定时器，防止内存泄漏
   useEffect(() => () => {
     if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current)
+    cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
   }, [])
 
-  /** 复制后端返回的原始字符串（含换行）；无 Clipboard API 时用隐藏 textarea 兜底 */
   const copyFullReply = useCallback(async () => {
     const text = String(reply || '').trim()
     if (!text) return
@@ -187,105 +88,89 @@ export default function ChatPanel({ reply }) {
     }
   }, [reply])
 
-  /** 用 SpeechSynthesisUtterance 朗读整段 reply；onboundary 驱动句级高亮 */
-  const speakReply = () => {
-    if (!canSpeak || !reply?.trim()) return
+  const speakReply = useCallback(async () => {
+    const text = String(reply || '').trim()
+    if (!text) return
 
-    window.speechSynthesis.cancel()
-    setActiveSegmentIndex(0)
-
-    const utterance = new SpeechSynthesisUtterance(reply)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 1
-    utterance.pitch = voiceType === 'male' ? 0.85 : 1.12
-    utterance.volume = 1
-    if (selectedVoice) utterance.voice = selectedVoice
-
-    utterance.onboundary = (event) => {
-      const index = findActiveSegmentIndex(replySegments, event.charIndex)
-      if (index >= 0) setActiveSegmentIndex(index)
-    }
-    utterance.onend = () => {
-      setIsSpeaking(false)
-      setActiveSegmentIndex(-1)
-    }
-    utterance.onerror = () => {
-      setIsSpeaking(false)
-      setActiveSegmentIndex(-1)
-    }
-
+    stopSpeaking()
+    setTtsError('')
     setIsSpeaking(true)
-    window.speechSynthesis.speak(utterance)
-  }
+
+    try {
+      await playXfyunTts(text, ttsAudioRef, ttsObjectUrlRef, { voice: voiceType })
+    } catch (e) {
+      console.error(e)
+      setTtsError(e?.message || '朗读失败：请确认后端已启动且已配置讯飞密钥')
+    } finally {
+      setIsSpeaking(false)
+    }
+  }, [reply, voiceType, stopSpeaking])
+
+  const trimmed = String(reply || '').trim()
 
   return (
     <div className="cp">
-      {/* 标题栏 */}
       <div className="cp-head">
         <span className="cp-head-icon">💬</span>
         <span>小文回复</span>
       </div>
-      {/* 正文：pre-wrap 保留换行；每句一个 span 便于高亮 */}
       <div className={`cp-body ${isSpeaking ? 'cp-body--speaking' : ''}`} ref={bodyRef}>
-        {replySegments.length ? replySegments.map((segment, index) => (
-          <span
-            key={`${segment.start}-${segment.end}`}
-            ref={index === activeSegmentIndex ? activeSegmentRef : null}
-            className={`cp-segment ${index === activeSegmentIndex ? 'is-active' : ''} ${isSpeaking && index < activeSegmentIndex ? 'is-read' : ''}`}
-          >
-            {renderTextWithLinks(segment.text)}
-          </span>
-        )) : '（暂无内容）'}
+        {trimmed ? (
+          <span className="cp-segment">{renderTextWithLinks(reply)}</span>
+        ) : (
+          '（暂无内容）'
+        )}
       </div>
 
-      {/* 复制整段 API 文本，与界面内链接渲染无关 */}
       <div className="cp-copy-row">
         <button
           type="button"
           className="cp-copy-btn"
           onClick={copyFullReply}
-          disabled={!reply?.trim()}
+          disabled={!trimmed}
           title="复制当前小文回复的完整纯文本"
         >
           {copyDone ? '已复制' : '复制全文'}
         </button>
       </div>
 
-      {/* 朗读：音色下拉 + 开始/停止 */}
       <div className="cp-tts">
         <div className="cp-tts-label">
           <span>🔊 朗读回复</span>
-          {selectedVoice && <small>{selectedVoice.name}</small>}
+          <small className="cp-tts-engine">讯飞 TTS · {VOICE_LABEL[voiceType] || VOICE_LABEL.female}</small>
         </div>
         <div className="cp-tts-actions">
           <select
             value={voiceType}
             onChange={(e) => setVoiceType(e.target.value)}
             className="cp-tts-select"
-            disabled={!canSpeak}
-            title="选择朗读音色"
+            disabled={isSpeaking}
+            title="后端若配置超拟人 wss，下列映射为 x5 发音人；否则为在线合成经典音库"
           >
-            <option value="female">女音</option>
-            <option value="male">男音</option>
+            <option value="female">女声 · 默认</option>
+            <option value="female_jiuxu">女声 · 许久 / 玉昭</option>
           </select>
           <button
             type="button"
             className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
             onClick={speakReply}
-            disabled={!canSpeak || !reply?.trim()}
+            disabled={!trimmed}
           >
-            {isSpeaking ? '重新朗读' : '开始朗读'}
+            {isSpeaking ? '朗读中…' : '开始朗读'}
           </button>
           <button
             type="button"
             className="cp-tts-btn"
             onClick={stopSpeaking}
-            disabled={!canSpeak || !isSpeaking}
+            disabled={!isSpeaking}
           >
             停止
           </button>
         </div>
-        {!canSpeak && <p className="cp-tts-tip">当前浏览器不支持语音朗读，请使用 Chrome 或 Edge。</p>}
+        {ttsError && <p className="cp-tts-tip cp-tts-tip--error">{ttsError}</p>}
+        <p className="cp-tts-tip">
+          超拟人需在控制台「发音人授权管理」领取发音人；11200 表示当前 vcn 未授权。也可在请求里直接传控制台给出的 vcn。
+        </p>
       </div>
     </div>
   )

@@ -10,6 +10,9 @@ dist/
 **/dist/
 *.local
 
+# 讯飞 TTS 等生成缓存（勿提交）
+backend/cache/
+
 # Python
 __pycache__/
 *.py[cod]

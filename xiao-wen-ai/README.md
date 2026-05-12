@@ -11,7 +11,7 @@
 - AI 对话和图片生成接入 **阿里云百炼 DashScope**；
 - 天气查询接入 **高德地图 API**；
 - 音乐搜索接入网易云相关接口和备用音乐源；
-- 语音识别和语音朗读使用浏览器 **Web Speech API**。
+- **语音识别**使用浏览器 **Web Speech API**；**朗读回复与划词朗读**走后端 **讯飞 TTS**（`POST /api/tts`，默认 WAV）。
 
 目前项目已经形成一个较完整的个人桌面 AI 助手雏形，支持聊天、问答、天气、音乐、绘图、朗读、翻译、模拟世界和打开本机应用等功能。
 
@@ -67,11 +67,11 @@ xiaowen/
     ├── src/
     │   ├── App.jsx         # 前端根组件，负责全局状态和接口请求
     │   ├── App.css         # 页面整体样式
-    │   ├── index.css       # 全局样式
+    │   ├── index.css       # 全局设计变量（暖纸底 + 石青主色、深浅色、字体栈）
     │   ├── components/     # 功能组件，包含聊天、天气、音乐、图片、图表等 UI
     │   └── hooks/          # 自定义 Hook
     ├── package.json        # 前端依赖和运行脚本
-    ├── vite.config.js      # Vite 配置
+    ├── vite.config.js      # Vite 配置（开发态 `/api` 代理到后端 5001）
     └── README.md           # 项目文档
 ```
 
@@ -163,25 +163,22 @@ xiaowen/
 
 ### 4. 回复朗读
 
-小文的文字回复可以直接朗读。
+小文的文字回复通过后端 **讯飞语音合成** 朗读（非浏览器 `speechSynthesis`）。
 
 支持能力：
 
-- 开始朗读；
-- 停止朗读；
-- 男音 / 女音选择；
-- 朗读音色偏好保存；
-- 朗读时逐句高亮；
-- 长文本自动滚动到当前朗读句。
+- 开始朗读 / 停止朗读；
+- 女声 /「许久·玉昭」等预设（具体映射见 `backend/routes/api.py` 与 `src/utils/xfyunTts.js`）；
+- 音色偏好写入 `localStorage`；
+- 文本先经后端清洗（去掉 Markdown、链接、Emoji 等），默认返回 **`audio/wav`**。
 
 实现方式：
 
-- 使用 `window.speechSynthesis`；
-- 使用 `SpeechSynthesisUtterance` 创建朗读任务；
-- 使用 `boundary` 事件追踪当前朗读位置；
-- 使用 `localStorage` 保存用户选择的音色类型。
+- 前端 `playXfyunTts` → `fetch` **`POST /api/tts`**（开发环境经 Vite 代理同源 `/api`）；
+- 后端按是否配置 **`XFYUN_SUPER_TTS_WS_URL`** 选择 **超拟人** 或 **在线合成 v2** WebSocket；
+- 密钥与接口地址仅写在 **`backend/.env`**，勿写入前端仓库。
 
-说明：真实男音或女音效果取决于浏览器和系统中安装的中文语音包。
+说明：发音人须在讯飞控制台对应产品中 **领取/授权**，否则会返回 **11200**；超拟人与在线合成的发音人列表 **不通用**。
 
 ---
 
@@ -439,7 +436,7 @@ xiaowen/
 
 - 前端监听用户选中文本；
 - 后端 `/api/translate-selection` 调用大模型完成翻译；
-- 朗读仍然使用浏览器 `speechSynthesis`。
+- **朗读原文/译文**与回复区相同，调用 **`POST /api/tts`**（讯飞），音色取自 `localStorage` 中的预设键。
 
 ---
 
@@ -484,7 +481,8 @@ xiaowen/
 | React | 构建组件化用户界面 |
 | Vite | 前端开发服务器和打包工具 |
 | CSS | 页面布局、动画、卡片样式和响应式效果 |
-| Web Speech API | 语音识别与语音朗读 |
+| Web Speech API | 语音识别（SpeechRecognition） |
+| `fetch` + Blob URL | 朗读：请求后端 `/api/tts` 播放 WAV |
 | SVG | 绘制折线图、柱状图、坐标轴和数据点 |
 | HTMLAudioElement | 音乐播放 |
 | localStorage | 保存指令历史、聊天历史、音量、音色偏好等 |
@@ -529,6 +527,7 @@ xiaowen/
 | subprocess / os.startfile | 启动本机白名单应用 |
 | csv / io | 解析 CSV、TXT、TSV 数据文件 |
 | openpyxl | 解析 Excel 数据文件 |
+| websockets（asyncio） | 讯飞 TTS：在线合成 v2 或超拟人 WebSocket |
 
 主要接口：
 
@@ -538,6 +537,7 @@ xiaowen/
 | `/api/image-status/<task_id>` | GET | 查询图片生成状态 |
 | `/api/generate-chart` | POST | 上传 CSV / TXT / Excel 文件并生成图表数据 |
 | `/api/translate-selection` | POST | 对划词内容进行翻译 |
+| `/api/tts` | POST | JSON：`text`、`voice` → 讯飞合成音频（默认 WAV），详见 `backend/.env.example` |
 
 后端核心逻辑：
 
@@ -590,6 +590,7 @@ DASHSCOPE_IMAGE_MODEL=wanx2.1-t2i-turbo
 DEEPSEEK_API_KEY=
 IMAGE_SIZE=768*1024
 CHAT_TIMEOUT=60
+# 朗读（可选）：讯飞 AppID / Key / Secret；超拟人需另配 XFYUN_SUPER_TTS_WS_URL，见 backend/.env.example
 ```
 
 启动后端：
@@ -786,8 +787,9 @@ backend/
 ### 3. 前端体验
 
 - **指令输入框**：发送结束或单次语音识别结束后自动重新聚焦，减少重复点击（`CommandInput.jsx`）。  
-- **语音**：单次聆听约 **5 秒**无有效人声则自动停止（`useVoiceRecognition.js` 中 `CMD_NO_INPUT_SEC`）。  
-- **吉祥物「小文机器人」**：可拖拽、投掷与边缘反弹，位置存 `localStorage`（`XiaowenBot.jsx`）。
+- **语音**：单次聆听约 **20 秒**内若引擎完全无文字则超时（`useVoiceRecognition.js` 中 `CMD_NO_INPUT_MS`）；有字后约 **2.8 秒**无新变化则提交。  
+- **吉祥物「小文机器人」**：可拖拽、投掷与边缘反弹，位置存 `localStorage`（`XiaowenBot.jsx`）。  
+- **开发代理**：`vite.config.js` 将 `/api` 代理到 `127.0.0.1:5001`，朗读与对话同源请求更稳定（`xfyunTts.js` 在 dev 下使用 `/api/tts`）。
 
 ### 4. 仓库根目录文档
 
@@ -813,7 +815,7 @@ backend/
 当前项目已经具备：
 
 - 能听：语音识别和唤醒词；
-- 能说：回复朗读和划词朗读；
+- 能说：回复朗读和划词朗读（讯飞 TTS）；
 - 能聊：AI 对话和连续追问；
 - 能查：天气查询；
 - 能放：音乐搜索与播放；

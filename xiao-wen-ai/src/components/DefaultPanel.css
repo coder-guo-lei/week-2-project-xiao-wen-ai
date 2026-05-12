@@ -38,9 +38,15 @@
   text-align: left; cursor: pointer;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
-  transition: transform .15s, box-shadow .2s, border-color .2s;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
-.dp-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.06); border-color: rgba(99,102,241,.35); }
+/* 默认与其它卡片一致；移入时沿用原摄像头示例的粉紫描边与微光 */
+.dp-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(20, 122, 110, 0.45);
+  box-shadow: var(--shadow-float);
+  background: linear-gradient(145deg, rgba(255, 252, 247, 0.95), var(--accent-bg));
+}
 .dp-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .dp-card-icon { font-size: 22px; flex-shrink: 0; }
 .dp-card-text { text-align: left; line-height: 1.4; }

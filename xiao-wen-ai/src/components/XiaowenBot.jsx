@@ -94,7 +94,7 @@ export default function XiaowenBot() {
         if (typeof p.x === 'number' && typeof p.y === 'number') {
           const c = applyClamp(p.x, p.y)
           posRef.current = c
-          setPos(c)
+          queueMicrotask(() => setPos(c))
           return
         }
       }
@@ -105,7 +105,7 @@ export default function XiaowenBot() {
       y: Math.max(8, window.innerHeight - h - 24),
     }
     posRef.current = initial
-    setPos(initial)
+    queueMicrotask(() => setPos(initial))
   }, [applyClamp])
 
   useEffect(() => {
@@ -331,7 +331,7 @@ export default function XiaowenBot() {
     }
 
     if (dragging || inertiaSpin || dizzy || isFalling) {
-      setPeekSide('none')
+      queueMicrotask(() => setPeekSide('none'))
       return undefined
     }
 
@@ -351,12 +351,12 @@ export default function XiaowenBot() {
     }
 
     if (!edge) {
-      setPeekSide('none')
+      queueMicrotask(() => setPeekSide('none'))
       return undefined
     }
 
     /* 仍在靠边但每次位置变化都先缩回去，重新累计 5s「不动」 */
-    setPeekSide('none')
+    queueMicrotask(() => setPeekSide('none'))
 
     peekIdleTimerRef.current = window.setTimeout(() => {
       setPeekSide(edge)
@@ -484,13 +484,13 @@ export default function XiaowenBot() {
           {/* 渐变与轻微模糊滤镜 */}
           <defs>
             <linearGradient id="xiaowen-bot-body" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#818cf8" />
-              <stop offset="55%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#4f46e5" />
+              <stop offset="0%" stopColor="#5eead4" />
+              <stop offset="55%" stopColor="#14b8a6" />
+              <stop offset="100%" stopColor="#0f766e" />
             </linearGradient>
             <linearGradient id="xiaowen-bot-face" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#f8fafc" />
-              <stop offset="100%" stopColor="#e0e7ff" />
+              <stop offset="0%" stopColor="#fffefb" />
+              <stop offset="100%" stopColor="#e6f7f4" />
             </linearGradient>
             <filter id="xiaowen-bot-soft" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="b" />
@@ -502,13 +502,13 @@ export default function XiaowenBot() {
           </defs>
 
           {/* 身体、脸部、耳朵 */}
-          <ellipse cx="60" cy="118" rx="44" ry="18" fill="rgba(99,102,241,0.14)" />
-          <ellipse cx="60" cy="92" rx="46" ry="42" fill="url(#xiaowen-bot-body)" stroke="#4338ca" strokeWidth="1.2" />
+          <ellipse cx="60" cy="118" rx="44" ry="18" fill="rgba(20, 184, 166, 0.16)" />
+          <ellipse cx="60" cy="92" rx="46" ry="42" fill="url(#xiaowen-bot-body)" stroke="#0f5f56" strokeWidth="1.2" />
 
-          <ellipse cx="60" cy="58" rx="40" ry="36" fill="url(#xiaowen-bot-face)" stroke="#a5b4fc" strokeWidth="1.4" />
+          <ellipse cx="60" cy="58" rx="40" ry="36" fill="url(#xiaowen-bot-face)" stroke="#99f6e4" strokeWidth="1.4" />
 
-          <circle cx="22" cy="54" r="9" fill="#818cf8" stroke="#6366f1" strokeWidth="1" />
-          <circle cx="98" cy="54" r="9" fill="#818cf8" stroke="#6366f1" strokeWidth="1" />
+          <circle cx="22" cy="54" r="9" fill="#5eead4" stroke="#0d9488" strokeWidth="1" />
+          <circle cx="98" cy="54" r="9" fill="#5eead4" stroke="#0d9488" strokeWidth="1" />
 
           <ellipse
             cx="43"
@@ -516,7 +516,7 @@ export default function XiaowenBot() {
             rx="11"
             ry={blink ? 1.4 : 13}
             fill="#fff"
-            stroke="#c7d2fe"
+            stroke="#a7f3d0"
             strokeWidth="1"
             className="xiaowen-bot__eyelid"
           />
@@ -529,7 +529,7 @@ export default function XiaowenBot() {
                   <circle className="xiaowen-bot__pupil-dazed" r="3.1" cx="1.6" cy="-0.4" fill="#475569" />
                 </g>
               ) : (
-                <circle r="5.2" cx="0" cy="0" fill="#312e81" className="xiaowen-bot__pupil" />
+                <circle r="5.2" cx="0" cy="0" fill="#134e4a" className="xiaowen-bot__pupil" />
               )}
             </g>
           )}
@@ -539,7 +539,7 @@ export default function XiaowenBot() {
             rx="11"
             ry={blink ? 1.4 : 13}
             fill="#fff"
-            stroke="#c7d2fe"
+            stroke="#a7f3d0"
             strokeWidth="1"
             className="xiaowen-bot__eyelid"
           />
@@ -551,7 +551,7 @@ export default function XiaowenBot() {
                   <circle className="xiaowen-bot__pupil-dazed" r="3.1" cx="1.6" cy="-0.4" fill="#475569" />
                 </g>
               ) : (
-                <circle r="5.2" cx="0" cy="0" fill="#312e81" className="xiaowen-bot__pupil" />
+                <circle r="5.2" cx="0" cy="0" fill="#134e4a" className="xiaowen-bot__pupil" />
               )}
             </g>
           )}
@@ -561,7 +561,7 @@ export default function XiaowenBot() {
             className="xiaowen-bot__brow xiaowen-bot__brow--l"
             d="M32 38 Q43 34 54 38"
             fill="none"
-            stroke="#6366f1"
+            stroke="#0d9488"
             strokeWidth="2.2"
             strokeLinecap="round"
           />
@@ -569,21 +569,21 @@ export default function XiaowenBot() {
             className="xiaowen-bot__brow xiaowen-bot__brow--r"
             d="M66 38 Q77 34 88 38"
             fill="none"
-            stroke="#6366f1"
+            stroke="#0d9488"
             strokeWidth="2.2"
             strokeLinecap="round"
           />
 
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--neutral" d="M44 74 Q60 82 76 74" fill="none" stroke="#4338ca" strokeWidth="2.4" strokeLinecap="round" />
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--happy" d="M42 76 Q60 92 78 76" fill="none" stroke="#4338ca" strokeWidth="2.6" strokeLinecap="round" />
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--curious" d="M52 78 Q60 84 68 76" fill="none" stroke="#4338ca" strokeWidth="2.4" strokeLinecap="round" />
-          <line className="xiaowen-bot__mouth xiaowen-bot__mouth--sleepy" x1="46" y1="80" x2="74" y2="80" stroke="#4338ca" strokeWidth="2.2" strokeLinecap="round" />
-          <ellipse className="xiaowen-bot__mouth xiaowen-bot__mouth--surprised" cx="60" cy="78" rx="6" ry="8" fill="none" stroke="#4338ca" strokeWidth="2.2" />
+          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--neutral" d="M44 74 Q60 82 76 74" fill="none" stroke="#115e59" strokeWidth="2.4" strokeLinecap="round" />
+          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--happy" d="M42 76 Q60 92 78 76" fill="none" stroke="#115e59" strokeWidth="2.6" strokeLinecap="round" />
+          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--curious" d="M52 78 Q60 84 68 76" fill="none" stroke="#115e59" strokeWidth="2.4" strokeLinecap="round" />
+          <line className="xiaowen-bot__mouth xiaowen-bot__mouth--sleepy" x1="46" y1="80" x2="74" y2="80" stroke="#115e59" strokeWidth="2.2" strokeLinecap="round" />
+          <ellipse className="xiaowen-bot__mouth xiaowen-bot__mouth--surprised" cx="60" cy="78" rx="6" ry="8" fill="none" stroke="#115e59" strokeWidth="2.2" />
           <path
             className="xiaowen-bot__mouth xiaowen-bot__mouth--grabbed"
             d="M 46 80 Q 60 70 74 80"
             fill="none"
-            stroke="#4338ca"
+            stroke="#115e59"
             strokeWidth="2.4"
             strokeLinecap="round"
           />
@@ -595,7 +595,7 @@ export default function XiaowenBot() {
             rx="5"
             ry="3.5"
             fill="none"
-            stroke="#4338ca"
+            stroke="#115e59"
             strokeWidth="2"
           />
 
@@ -636,10 +636,10 @@ export default function XiaowenBot() {
             />
           </g>
 
-          <ellipse cx="28" cy="64" rx="7" ry="4" fill="rgba(236,72,153,0.18)" />
-          <ellipse cx="92" cy="64" rx="7" ry="4" fill="rgba(236,72,153,0.18)" />
+          <ellipse cx="28" cy="64" rx="7" ry="4" fill="rgba(20, 184, 166, 0.22)" />
+          <ellipse cx="92" cy="64" rx="7" ry="4" fill="rgba(20, 184, 166, 0.22)" />
 
-          <line x1="60" y1="22" x2="60" y2="8" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="60" y1="22" x2="60" y2="8" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
           <circle cx="60" cy="6" r="5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1" filter="url(#xiaowen-bot-soft)" />
         </svg>
         <span className="xiaowen-bot__label">小文</span>

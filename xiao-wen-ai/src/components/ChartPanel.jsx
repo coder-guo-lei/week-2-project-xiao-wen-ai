@@ -16,7 +16,7 @@
 import './ChartPanel.css'
 
 // 柱状图循环使用的配色，保持多柱数据有区分度。
-const CHART_COLORS = ['#2563eb', '#7c3aed', '#0891b2', '#16a34a', '#f59e0b', '#dc2626']
+const CHART_COLORS = ['#147a6e', '#0d9488', '#0891b2', '#16a34a', '#d97706', '#dc2626']
 
 function formatNumber(value) {
   return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })
@@ -73,33 +73,38 @@ function truncateAxisLabel(label, pointsLen) {
 }
 
 export default function ChartPanel({ data, onUpload, disabled }) {
-  // data 为空时作为“上传入口卡片”；data 有值时作为“图表展示卡片”。
   const points = Array.isArray(data?.points) ? data.points : []
   const geometry = buildChartGeometry(points)
 
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0]
+    if (file) onUpload?.(file)
+    event.target.value = ''
+  }
+
   if (!data || points.length === 0) {
     return (
-      <div className="chart-panel chart-panel--empty">
-        <h3>数据图表</h3>
-        <p>
-          可直接说「帮我生成一份数据和柱状图」，系统会自动给出示例数据；也可输入「一月:120 二月:180」这类数字，或上传
-          CSV / Excel。
-        </p>
-      </div>
+      <section className="chart-panel chart-panel--empty" aria-label="数据可视化图表">
+        <div className="chart-head chart-head--empty">
+          <div>
+            <h3>数据图表</h3>
+            <p>
+              可直接说「帮我生成一份数据和柱状图」，系统会自动给出示例数据；也可输入「一月:120 二月:180」这类数字，或上传
+              CSV / Excel。
+            </p>
+          </div>
+          <label className={`chart-upload ${disabled ? 'is-disabled' : ''}`}>
+            <input type="file" accept=".csv,.txt,.tsv,.xlsx,.xls" onChange={handleFileChange} disabled={disabled} />
+            上传数据文件
+          </label>
+        </div>
+      </section>
     )
   }
 
   const isLine = data.chartType === 'line'
   const polyline = points.map((item, index) => `${geometry.xOf(index)},${geometry.yOf(item.value)}`).join(' ')
   const barLayout = computeBarLayout(geometry, points)
-  const zeroY = geometry.yOf(0)
-
-  const handleFileChange = (event) => {
-    // 选择文件后交给 App.jsx 上传；清空 value 可以让用户连续选择同一个文件。
-    const file = event.target.files?.[0]
-    if (file) onUpload?.(file)
-    event.target.value = ''
-  }
 
   return (
     <section className="chart-panel" aria-label="数据可视化图表">
@@ -129,13 +134,13 @@ export default function ChartPanel({ data, onUpload, disabled }) {
         <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="chartLineGlow" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#2563eb" />
-              <stop offset="55%" stopColor="#7c3aed" />
-              <stop offset="100%" stopColor="#06b6d4" />
+              <stop offset="0%" stopColor="#3da89a" />
+              <stop offset="50%" stopColor="#147a6e" />
+              <stop offset="100%" stopColor="#0d5c54" />
             </linearGradient>
             <linearGradient id="chartBarGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="100%" stopColor="#7c3aed" />
+              <stop offset="0%" stopColor="#5eead4" />
+              <stop offset="100%" stopColor="#0f766e" />
             </linearGradient>
           </defs>
 

@@ -3,10 +3,10 @@
   width: 100%;
   margin-top: 16px;
   padding: 18px;
-  border: 1px solid rgba(96, 165, 250, 0.35);
+  border: 1px solid var(--workflow-border);
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 80, 0.94));
-  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.26);
+  background: linear-gradient(155deg, var(--workflow-bg-a), var(--workflow-bg-b));
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
 }
 
 .workflow-panel__header {
@@ -27,7 +27,7 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #93c5fd;
+  color: var(--workflow-eyebrow);
 }
 
 .workflow-panel__steps {
@@ -51,8 +51,8 @@
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.36);
+  background: linear-gradient(135deg, var(--workflow-step-ring), var(--accent-strong));
+  box-shadow: 0 10px 24px rgba(20, 122, 110, 0.35);
 }
 
 .workflow-step__body {

@@ -11,18 +11,31 @@
 }
 
 /* header */
-.app-header { text-align: center; }
+.app-header {
+  text-align: center;
+}
 .app-logo {
   display: inline-block;
-  font-size: 28px; font-weight: 800; letter-spacing: -.5px;
-  background: linear-gradient(135deg, #6366f1, #a78bfa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.25rem);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: var(--accent-strong);
+  text-shadow: 0 1px 0 rgba(255, 252, 247, 0.6);
+}
+@media (prefers-color-scheme: dark) {
+  .app-logo {
+    color: var(--accent-soft);
+    text-shadow: 0 1px 12px rgba(45, 212, 191, 0.25);
+  }
 }
 .app-subtitle {
-  margin: 4px 0 0; font-size: 14px;
-  color: var(--text-tertiary); font-weight: 400;
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.12em;
 }
 
 /* body two-column */
@@ -36,7 +49,7 @@
   border: 1px solid var(--card-border);
   border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.03);
+  box-shadow: var(--shadow-panel);
   display: flex;
   flex-direction: column;
 }
@@ -50,8 +63,12 @@
 }
 
 .panel-title {
-  margin: 0 0 14px; font-size: 16px; font-weight: 600;
-  color: var(--text-primary); flex-shrink: 0;
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .panel-content {
@@ -72,6 +89,20 @@
   flex-direction: column;
   gap: 0;
   padding: 18px;
+}
+
+/* 天气：卡片随内容增高，勿与整条反馈区等高造成渐变内留白 */
+.panel-content--weather {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 16px 18px 18px;
+}
+.panel-content--weather .feedback-stack {
+  min-height: 0;
+  flex: 0 1 auto;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
 }
 
 .feedback-stack {

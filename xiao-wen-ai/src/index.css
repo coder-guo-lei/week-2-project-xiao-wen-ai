@@ -1,4 +1,4 @@
-/* ===== Global Reset & Design Tokens ===== */
+/* ===== Global reset & design tokens（小文：暖纸底 + 石青主色）===== */
 *,
 *::before,
 *::after {
@@ -8,34 +8,77 @@
 }
 
 :root {
-  --accent: #6366f1;
-  --accent-light: #a78bfa;
-  --accent-bg: rgba(99, 102, 241, .08);
-  --hover-bg: rgba(99, 102, 241, .06);
+  /* 主色：石青 / 黛绿，与助手偏「文书、温和」气质一致 */
+  --accent: #147a6e;
+  --accent-strong: #0d5c54;
+  --accent-soft: #3da89a;
+  --accent-light: #8fd4c9;
+  --accent-bg: rgba(20, 122, 110, 0.1);
+  --hover-bg: rgba(20, 122, 110, 0.08);
 
-  --bg: #f5f6fa;
-  --card-bg: #ffffff;
-  --card-bg-alt: #f9fafb;
-  --card-border: #e5e7eb;
+  --bg: #f2efe6;
+  --card-bg: #fffcf7;
+  --card-bg-alt: #f7f3eb;
+  --card-border: #e2dcd0;
 
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --text-tertiary: #9ca3af;
+  --text-primary: #1c1917;
+  --text-secondary: #44403c;
+  --text-tertiary: #78716c;
 
   --radius: 14px;
-  --font: "Inter", "Microsoft YaHei", system-ui, sans-serif;
+  --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display: "Fraunces", "Songti SC", "STSong", Georgia, serif;
+
+  --shadow-panel: 0 1px 2px rgba(28, 25, 23, 0.04), 0 12px 32px rgba(28, 25, 23, 0.06);
+  --shadow-float: 0 18px 40px rgba(15, 92, 84, 0.12);
+
+  /* 左栏内嵌工具卡（图片理解 / 摄像头等） */
+  --tool-card-bg: color-mix(in srgb, var(--card-bg-alt) 94%, var(--accent) 6%);
+  --tool-card-border: color-mix(in srgb, var(--accent) 22%, var(--card-border));
+  --tool-card-dash: color-mix(in srgb, var(--accent) 38%, transparent);
+  --tool-inner-bg: color-mix(in srgb, var(--card-bg) 88%, var(--card-bg-alt));
+  --tool-inner-border: var(--card-border);
+
+  /* 工作流深色卡（与浅色主界面区分层次） */
+  --workflow-bg-a: #141c1b;
+  --workflow-bg-b: #1a2826;
+  --workflow-border: rgba(45, 212, 191, 0.28);
+  --workflow-eyebrow: #5eead4;
+  --workflow-step-ring: #14b8a6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1117;
-    --card-bg: #1a1d2e;
-    --card-bg-alt: #1f2235;
-    --card-border: #2d3048;
+    --accent: #2dd4bf;
+    --accent-strong: #14b8a6;
+    --accent-soft: #5eead4;
+    --accent-light: #99f6e4;
+    --accent-bg: rgba(45, 212, 191, 0.12);
+    --hover-bg: rgba(45, 212, 191, 0.1);
 
-    --text-primary: #e5e7eb;
-    --text-secondary: #9ca3af;
-    --text-tertiary: #6b7280;
+    --bg: #111816;
+    --card-bg: #171d1c;
+    --card-bg-alt: #1a2221;
+    --card-border: #2a3432;
+
+    --text-primary: #f5f5f4;
+    --text-secondary: #d6d3d1;
+    --text-tertiary: #a8a29e;
+
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.2), 0 12px 36px rgba(0, 0, 0, 0.35);
+    --shadow-float: 0 18px 48px rgba(0, 0, 0, 0.45);
+
+    --workflow-bg-a: #0c1211;
+    --workflow-bg-b: #111a19;
+    --workflow-border: rgba(45, 212, 191, 0.22);
+    --workflow-eyebrow: #7dd3fc;
+    --workflow-step-ring: #2dd4bf;
+
+    --tool-card-bg: linear-gradient(165deg, #151c1b 0%, #1a2523 100%);
+    --tool-card-border: rgba(45, 212, 191, 0.22);
+    --tool-card-dash: rgba(45, 212, 191, 0.38);
+    --tool-inner-bg: rgba(12, 18, 17, 0.55);
+    --tool-inner-border: rgba(45, 212, 191, 0.14);
   }
 }
 
@@ -48,8 +91,19 @@ html {
 body {
   font-family: var(--font);
   color: var(--text-primary);
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 130% 70% at 50% -15%, rgba(20, 122, 110, 0.07), transparent 52%),
+    radial-gradient(ellipse 50% 45% at 100% 0%, rgba(180, 140, 90, 0.05), transparent 42%);
   line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-image:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(45, 212, 191, 0.08), transparent 50%),
+      radial-gradient(ellipse 40% 35% at 0% 100%, rgba(20, 90, 80, 0.12), transparent 40%);
+  }
 }
 
 #root {
@@ -62,9 +116,21 @@ body {
   text-align: left;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
 
-::selection { background: var(--accent); color: #fff; }
+::selection {
+  background: var(--accent);
+  color: #fff;
+}

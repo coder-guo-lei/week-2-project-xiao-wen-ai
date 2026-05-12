@@ -6,10 +6,13 @@
 
 | 路径 | 说明 |
 |------|------|
-| `backend/` | Flask API：`app.py`、依赖 `requirements.txt`、环境模板 `.env.example` |
+| `backend/` | Flask：`app.py` 入口；`config.py` 环境变量；`logic/task_parser.py` 指令与业务；`services/xfyun_tts.py` 朗读；`routes/api.py` HTTP 路由；依赖见 `requirements.txt`、`.env.example` |
 | `xiao-wen-ai/` | 前端工程：`pnpm dev` / `pnpm build`，详见该目录 [README](xiao-wen-ai/README.md) |
 | `generate_xiaowen_ppt.py` | 可选：生成答辩用 PPTX（需 `pip install python-pptx`） |
+| `答辩文档-小文智能语音助手.md` | **答辩主文档**：背景、架构、应用技术、产出物、作用与演示要点 |
+| `答辩-小文智能助手项目介绍.md` | 答辩用（若存在）：项目背景、架构、模块说明 |
 | `AI与前端项目汇总.md` | 通用前端/AI 学习笔记与小文项目摘要 |
+| `小文代码导读.md` | 前后端结构、请求链路、`task_parser` 章节索引（配合源码注释阅读） |
 
 ## 快速启动
 
@@ -36,6 +39,7 @@ pnpm dev
 - **DeepSeek（可选）**：OpenAI 兼容接口，作对话/翻译/知识库兜底。  
 - **AMAP_KEY**：高德地图天气与地理编码，勿硬编码。  
 - **LOCAL_TIMEZONE**：对话里「今天」所用 IANA 时区（默认 `Asia/Shanghai`）。  
+- **讯飞 `XFYUN_*`**：朗读接口 `/api/tts`；填写 **`XFYUN_SUPER_TTS_WS_URL`** 时使用「超拟人」协议，否则使用「在线语音合成」v2；密钥勿提交 Git。  
 
 完整列表见 `backend/.env.example`。
 

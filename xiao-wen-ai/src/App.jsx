@@ -23,11 +23,13 @@ import SelectionToolbar from './components/SelectionToolbar'
 import ModeBar from './components/ModeBar'
 import WorkflowPanel from './components/WorkflowPanel'
 import ImageAnalyzer from './components/ImageAnalyzer'
+import FaceWellnessCamera from './components/FaceWellnessCamera'
 import ChartPanel from './components/ChartPanel'
 import XiaowenBot from './components/XiaowenBot'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
+import { apiUrl } from './apiBase'
 
 // ---------- 与 localStorage 同步的键名、列表长度上限 ----------
 const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
@@ -37,6 +39,63 @@ const MAX_CHAT_HISTORY = 12
 /** 与后端 IMAGE_TASK_TIMEOUT（默认 120s）大致对齐，避免前端永久轮询 */
 /** 文生图轮询最长等待（毫秒），略大于后端 IMAGE_TASK_TIMEOUT，防止无限轮询 */
 const IMAGE_POLL_MAX_MS = 130_000
+
+const LAST_LOC_KEY = 'xiaowen_last_client_location_v1'
+
+/** 上次成功定位（会话内），getCurrentPosition 超时或拒权时可兜底 */
+function readCachedClientLocation(maxAgeMs = 15 * 60 * 1000) {
+  try {
+    const raw = sessionStorage.getItem(LAST_LOC_KEY)
+    if (!raw) return null
+    const o = JSON.parse(raw)
+    if (o == null || typeof o.lat !== 'number' || typeof o.lng !== 'number' || typeof o.t !== 'number') return null
+    if (Date.now() - o.t > maxAgeMs) return null
+    return { lat: o.lat, lng: o.lng, accuracy: o.accuracy }
+  } catch {
+    return null
+  }
+}
+
+function writeCachedClientLocation(loc) {
+  if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return
+  try {
+    sessionStorage.setItem(LAST_LOC_KEY, JSON.stringify({ lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, t: Date.now() }))
+  } catch { /* ignore */ }
+}
+
+/**
+ * 浏览器定位（WGS84），供后端逆地理 / 当地天气 / 附近美食。
+ * 适当延长等待；失败或超时后用会话内缓存兜底，减少「未带 location → 后端默认北京」的情况。
+ */
+function fetchClientLocation(timeoutMs = 6500) {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(readCachedClientLocation())
+  }
+  return new Promise((resolve) => {
+    const fallback = () => readCachedClientLocation()
+    const finish = (v) => {
+      clearTimeout(tid)
+      if (v) writeCachedClientLocation(v)
+      resolve(v || fallback())
+    }
+    const tid = setTimeout(() => finish(null), timeoutMs)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        finish({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        })
+      },
+      () => finish(null),
+      {
+        enableHighAccuracy: true,
+        timeout: Math.max(4000, timeoutMs - 500),
+        maximumAge: 120_000,
+      },
+    )
+  })
+}
 
 function App() {
   // ---------- 输入与日志 ----------
@@ -85,6 +144,11 @@ function App() {
   /** 追加一条右侧日志 */
   const addLog = useCallback((text) => {
     setLogList((prev) => [...prev, text])
+  }, [])
+
+  /** 清空右侧运行日志（手动按钮或语音识别成功即将发送指令时调用） */
+  const clearLogList = useCallback(() => {
+    setLogList([])
   }, [])
 
   /** 去重后把指令插到历史最前，并写入 localStorage */
@@ -170,7 +234,7 @@ function App() {
           imagePollDeadlineRef.current = null
           return
         }
-        const r = await fetch(`http://127.0.0.1:5001/api/image-status/${taskId}`)
+        const r = await fetch(apiUrl(`/api/image-status/${taskId}`))
         const d = await r.json()
         if (d.status === 'succeeded' && d.imageUrl) {
           clearInterval(pollTimerRef.current)
@@ -215,10 +279,14 @@ function App() {
     addLog(`📝 识别指令：${cmdText}`)
 
     try {
-      const res = await fetch('http://127.0.0.1:5001/api/send-task', {
+      const location = await fetchClientLocation(7000)
+      const payload = { task: cmdText, history: chatHistory }
+      if (location) payload.location = location
+
+      const res = await fetch(apiUrl('/api/send-task'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: cmdText, history: chatHistory }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       const apiErr =
@@ -275,8 +343,36 @@ function App() {
           qishuiEmbedUrl: data.qishuiEmbedUrl || '',
         })
         setContentType('music')
+      } else if (data.type === 'music_control' && data.musicAction) {
+        let switched = false
+        if (data.musicAction === 'next') switched = music.playNext()
+        else if (data.musicAction === 'prev') switched = music.playPrevious()
+        if (!switched) {
+          addLog('⚠️ 播放列表为空，请先说「随便放首歌」或点一首再试「换一首」。')
+        }
+        setContentType('music')
       } else if (data.type === 'web') {
-        setChatReply(`${data.reply}\n${data.previewUrl ? `链接：${data.previewUrl}` : ''}`)
+        const url = String(data.previewUrl || '').trim()
+        const replyHead = String(data.reply || '').trim()
+        const lines = []
+        if (replyHead) lines.push(replyHead)
+        if (url && /^https?:\/\//i.test(url)) {
+          let opened = null
+          try {
+            opened = window.open(url, '_blank', 'noopener,noreferrer')
+          } catch {
+            /* 部分环境禁止脚本打开窗口 */
+          }
+          lines.push(`链接：${url}`)
+          lines.push(
+            opened
+              ? '（已尝试在新标签页打开；若无页面请检查是否被拦截或稍候再点上方链接。）'
+              : '（未打开新标签页：语音/发送后请求是异步的，浏览器常会拦截自动弹窗。请点击上方蓝色链接打开。）',
+          )
+        } else if (url) {
+          lines.push(`链接：${url}`)
+        }
+        setChatReply(lines.join('\n'))
         setContentType('chat')
       } else {
         setContentType('default')
@@ -301,12 +397,29 @@ function App() {
     setIsSending(false)
   }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory])
 
+  /** DefaultPanel 快捷示例：摄像头肤质入口滚动定位，不走后端 */
+  const handleDefaultExample = useCallback((example) => {
+    if (!example?.text) return
+    if (example.type === 'face_camera') {
+      addLog('📷 已定位「肤质与状态洞察」：请开启摄像头并点击「抓拍并分析」')
+      setContentType('default')
+      requestAnimationFrame(() => {
+        document.getElementById('face-wellness-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+      return
+    }
+    autoSendTask(example.text)
+  }, [addLog, autoSendTask])
+
   const voice = useVoiceRecognition({
     onResult: (text) => {
       setTask(text)
+      clearLogList()
       autoSendTask(text)
     },
     addLog,
+    /** 固定使用 Chrome / Edge Web Speech；讯飞听写易与控制台产品/协议不一致，暂不自动开启 */
+    useXfyunAsr: false,
   })
 
   /** POST /api/generate-chart（multipart），成功后 setChartData + workflow */
@@ -325,7 +438,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('task', task || '生成柱状图')
-      const res = await fetch('http://127.0.0.1:5001/api/generate-chart', {
+      const res = await fetch(apiUrl('/api/generate-chart'), {
         method: 'POST',
         body: formData,
       })
@@ -353,22 +466,25 @@ function App() {
   }, [addLog, isGeneratingChart, task])
 
   /** POST /api/analyze-image，百炼 VL；失败时把 workflow 最后一步设为错误说明 */
-  const analyzeLocalImage = useCallback(async (file, question = '') => {
+  const analyzeLocalImage = useCallback(async (file, question = '', options = {}) => {
     if (!file || isAnalyzingImage) return
+    const kind = options.kind || ''
     setIsAnalyzingImage(true)
     setContentType('chat')
-    setChatReply('正在分析图片，请稍候...')
+    setChatReply(kind === 'face_wellness' ? '正在分析人像与护理参考，请稍候…' : '正在分析图片，请稍候...')
+    const recvDetail = kind === 'face_wellness' ? '摄像头人像抓拍' : (file.name || '本地图片')
     setWorkflowSteps([
-      { title: '接收图片', detail: file.name || '本地图片' },
-      { title: '上传图片', detail: '发送到后端图片理解接口' },
+      { title: '接收图片', detail: recvDetail },
+      { title: '上传图片', detail: kind === 'face_wellness' ? '发送到肤质与状态洞察接口' : '发送到后端图片理解接口' },
     ])
-    addLog(`🖼️ 分析图片：${file.name || '粘贴图片'}`)
+    addLog(kind === 'face_wellness' ? '📷 肤质与状态分析（摄像头）' : `🖼️ 分析图片：${file.name || '粘贴图片'}`)
 
     try {
       const formData = new FormData()
       formData.append('image', file)
       formData.append('question', question)
-      const res = await fetch('http://127.0.0.1:5001/api/analyze-image', {
+      formData.append('kind', kind)
+      const res = await fetch(apiUrl('/api/analyze-image'), {
         method: 'POST',
         body: formData,
       })
@@ -448,8 +564,9 @@ function App() {
               {contentType === 'default' && (
                 <>
                   <ImageAnalyzer onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
+                  <FaceWellnessCamera onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
                   <ChartPanel onUpload={generateChartFromFile} disabled={isGeneratingChart} />
-                  <DefaultPanel isCmdActive={voice.isCmdActive} isWakeActive={voice.isWakeActive} onExampleClick={autoSendTask} />
+                  <DefaultPanel isCmdActive={voice.isCmdActive} isWakeActive={voice.isWakeActive} onExampleClick={handleDefaultExample} />
                 </>
               )}
               <WorkflowPanel steps={workflowSteps} />
@@ -459,7 +576,7 @@ function App() {
 
         {/* right — 运行日志 */}
         <main className="panel panel--right">
-          <LogPanel logs={logList} />
+          <LogPanel logs={logList} onClear={clearLogList} />
         </main>
       </div>
     </div>
