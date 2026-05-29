@@ -1,12 +1,11 @@
 """
-环境变量与静态常量：import 本模块时执行 load_dotenv，把 backend/.env 写入 os.environ。
-
-分段约定（向下滚动即可看到对应注释块）：
-  · 讯飞 TTS / 超拟人 URL
-  · DashScope、高德、DeepSeek、超时与模型名
-  · 网易云请求头、知识库与对话长度限制
-  · 模拟世界 WORLD_THEMES
-  · APP_LAUNCHERS 与本机微信/QQ 路径解析函数
+整个项目的 核心配置文件 + 系统工具箱
+这个文件 = 项目的控制面板 + 软件查找器 + AI 配置中心 + 文字游戏素材库
+它只做 3 件事：
+加载你的密钥配置（AI、语音、地图）
+定义所有功能的规则（语速、图片大小、对话长度）
+提供工具函数：自动找到你电脑上的微信 / QQ / 抖音 / 网易云
+内置文字冒险游戏的素材
 """
 import logging
 import os
@@ -16,14 +15,16 @@ from pathlib import Path
 
 from dotenv import dotenv_values, load_dotenv
 
+# 找到项目文件夹路径
 BASE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BASE_DIR.parent
 _ENV_FILE = BASE_DIR / ".env"
+# 加载 .env 文件里的密钥（AI密钥、语音密钥）
 load_dotenv(_ENV_FILE, encoding="utf-8-sig")
 for _k, _v in dotenv_values(_ENV_FILE, encoding="utf-8-sig").items():
     if _v is not None and str(_v).strip() != "":
         os.environ[_k] = str(_v).strip()
-
+# 开启日志（程序运行会打印记录）
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # ---------- 讯飞 TTS ----------
@@ -136,7 +137,6 @@ APP_LAUNCHERS = {
     "edge": "start msedge",
     "谷歌": "start chrome",
     "chrome": "start chrome",
-    # 本机通常无 wechat/qq 在 PATH，改为 resolve 探测 Tencent 安装目录；失败再尝试开始菜单快捷方式
     "微信": "resolve:wechat",
     "qq": "resolve:qq",
     "网易云": "resolve:netease",

@@ -7,6 +7,7 @@ HTTP API 层（Flask Blueprint「api」）。
 """
 import asyncio  # 同步 Flask 视图里调用 async 讯飞 TTS 时用 asyncio.run
 import logging
+import os
 
 from flask import Blueprint, Response, jsonify, request  # Response：直接返回音频字节流
 
@@ -34,6 +35,12 @@ from logic.task_parser import (
     resolve_chart_points_from_task,
     translate_selected_text,
     with_workflow,
+)
+from logic.user_apps import (
+    add_user_app,
+    pick_exe_windows_blocking,
+    remove_user_app,
+    user_apps_public_list,
 )
 from services.xfyun_iat import transcribe_wav_bytes
 from services.xfyun_tts import (
@@ -323,11 +330,80 @@ def send_task():
         return jsonify({"code": 500, "reply": f"服务器内部错误: {str(e)}"})
 
 
+@api_bp.route("/api/user-apps", methods=["GET"])
+def user_apps_get():
+    """列出用户自行添加的可启动应用（名称 + 绝对路径）。"""
+    try:
+        return jsonify({"code": 200, "apps": user_apps_public_list()})
+    except Exception as e:
+        logger.error("user_apps_get: %s", e)
+        return jsonify({"code": 500, "apps": [], "error": str(e)}), 500
+
+
+@api_bp.route("/api/user-apps", methods=["POST"])
+def user_apps_post():
+    """JSON { name, path }：将本机 .exe 加入白名单（path 一般由 /api/user-apps/pick 返回）。"""
+    try:
+        data = request.get_json(silent=True) or {}
+        name = (data.get("name") or "").strip()
+        path = (data.get("path") or "").strip()
+        ok, msg = add_user_app(name, path)
+        if ok:
+            return jsonify({"code": 200, "message": msg})
+        return jsonify({"code": 400, "message": msg}), 400
+    except Exception as e:
+        logger.error("user_apps_post: %s", e)
+        return jsonify({"code": 500, "message": str(e)}), 500
+
+
+@api_bp.route("/api/user-apps", methods=["DELETE"])
+def user_apps_delete():
+    """Query: name=显示名称，移除一条用户白名单。"""
+    try:
+        name = (request.args.get("name") or "").strip()
+        ok, msg = remove_user_app(name)
+        if ok:
+            return jsonify({"code": 200, "message": msg})
+        return jsonify({"code": 400, "message": msg}), 400
+    except Exception as e:
+        logger.error("user_apps_delete: %s", e)
+        return jsonify({"code": 500, "message": str(e)}), 500
+
+
+@api_bp.route("/api/user-apps/pick", methods=["POST"])
+def user_apps_pick_exe():
+    """
+    Windows：阻塞直至用户在系统对话框中选好 .exe（子进程 tkinter）。
+    成功 { code, path, suggestedName }；取消 { code:204, path:null }；非 Windows { code:501 }。
+    """
+    if os.name != "nt":
+        return jsonify({
+            "code": 501,
+            "path": None,
+            "suggestedName": None,
+            "message": "浏览添加仅支持在本机 Windows 上运行后端时使用。",
+        }), 501
+    try:
+        path = pick_exe_windows_blocking()
+        if not path:
+            return jsonify({
+                "code": 204,
+                "path": None,
+                "suggestedName": None,
+                "message": "未选择文件或无法弹出选择窗口（请确认已安装 tkinter，且未在纯 SSH 无桌面环境运行）。",
+            })
+        stem = os.path.splitext(os.path.basename(path))[0]
+        return jsonify({"code": 200, "path": path, "suggestedName": stem or "我的应用", "message": "ok"})
+    except Exception as e:
+        logger.error("user_apps_pick_exe: %s", e)
+        return jsonify({"code": 500, "path": None, "suggestedName": None, "message": str(e)}), 500
+
+
 @api_bp.route("/api/capabilities", methods=["GET"])
 def capabilities():
     """前端用于判断是否展示「讯飞听写」上传按钮等；与 TTS 共用同一套讯飞密钥。"""
     ok = bool(XFYUN_APP_ID and XFYUN_API_KEY and XFYUN_API_SECRET)
-    return jsonify({"code": 200, "xfyunAsr": ok})
+    return jsonify({"code": 200, "xfyunAsr": ok, "userExePick": os.name == "nt"})
 
 
 @api_bp.route("/api/speech-to-text", methods=["POST"])

@@ -3,16 +3,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--card-border);
-  border-radius: 14px;
-  background: var(--card-bg-alt);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
 }
 
 .mode-bar--world {
-  border-color: rgba(34, 197, 94, 0.35);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), var(--accent-bg));
+  border-color: color-mix(in srgb, var(--success) 42%, var(--border));
+  background: linear-gradient(135deg, var(--success-bg), var(--accent-bg));
 }
 
 .mode-bar__main {
@@ -32,8 +32,8 @@
 }
 
 .mode-bar--world .mode-bar__dot {
-  background: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  background: var(--success);
+  box-shadow: 0 0 0 4px var(--success-bg);
   animation: modePulse 1.8s ease-in-out infinite;
 }
 
@@ -61,14 +61,18 @@
 
 .mode-bar__actions button {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   padding: 7px 10px;
-  color: #fff;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: var(--text-on-accent);
+  background: linear-gradient(
+    135deg,
+    var(--success) 0%,
+    color-mix(in srgb, var(--success) 78%, #1c1917 22%) 100%
+  );
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform var(--duration-fast) ease, opacity var(--duration-fast) ease;
 }
 
 .mode-bar__actions button:hover {

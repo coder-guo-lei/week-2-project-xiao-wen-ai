@@ -7,7 +7,8 @@
  *   - 向后端 /api/send-task 发送指令，根据返回 type / mode / resetUI 切换界面
  *   - 处理“再见小文”：先展示告别回复，再延迟回到初始默认面板
  *
- * 子组件：CommandInput / 左侧反馈区（天气、聊天、图片、图表等）、右侧 LogPanel、吉祥物 XiaowenBot
+ * 子组件：CommandInput、ModeBar、WorkflowPanel、左侧反馈区（DefaultPanel / Chat / Weather / Music / Image / Chart 等）、
+ * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、右侧 LogPanel、吉祥物 XiaowenBot
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
 import './App.css'
@@ -36,8 +37,7 @@ const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
 const CHAT_HISTORY_KEY = 'xiaowen_chat_history'
 const MAX_COMMAND_HISTORY = 8
 const MAX_CHAT_HISTORY = 12
-/** 与后端 IMAGE_TASK_TIMEOUT（默认 120s）大致对齐，避免前端永久轮询 */
-/** 文生图轮询最长等待（毫秒），略大于后端 IMAGE_TASK_TIMEOUT，防止无限轮询 */
+/** 文生图轮询最长等待（毫秒）；略大于后端 IMAGE_TASK_TIMEOUT（默认 120s），避免无限轮询 */
 const IMAGE_POLL_MAX_MS = 130_000
 
 const LAST_LOC_KEY = 'xiaowen_last_client_location_v1'
@@ -138,6 +138,14 @@ function App() {
   const elapsedTimerRef = useRef(null) // 每秒 +1 已等待时间
   const imagePollDeadlineRef = useRef(null) // 轮询绝对超时时间点（时间戳）
   const feedbackRef = useRef(null) // 「智慧助手空间」标题，用于 send 后 scrollIntoView
+
+  const [userAppList, setUserAppList] = useState([])
+  /** 后端 Windows 时可为 true，用于显示「浏览添加」按钮 */
+  const [userExePickSupported, setUserExePickSupported] = useState(true)
+  const [pickBrowseBusy, setPickBrowseBusy] = useState(false)
+  /** 选完 exe 待用户确认名称：{ path, suggestedName } */
+  const [addAppDraft, setAddAppDraft] = useState(null)
+  const [addAppNameInput, setAddAppNameInput] = useState('')
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
 
@@ -266,6 +274,24 @@ function App() {
     clearInterval(pollTimerRef.current)
     clearInterval(elapsedTimerRef.current)
   }, [])
+
+  const refreshUserApps = useCallback(async () => {
+    try {
+      const r = await fetch(apiUrl('/api/user-apps'))
+      const d = await r.json()
+      if (d.code === 200 && Array.isArray(d.apps)) setUserAppList(d.apps)
+    } catch { /* ignore */ }
+  }, [])
+
+  useEffect(() => {
+    refreshUserApps()
+    fetch(apiUrl('/api/capabilities'))
+      .then((res) => res.json())
+      .then((d) => {
+        if (typeof d.userExePick === 'boolean') setUserExePickSupported(d.userExePick)
+      })
+      .catch(() => {})
+  }, [refreshUserApps])
 
   /**
    * 核心：POST /api/send-task，按返回 type 切换界面与副作用。
@@ -465,6 +491,78 @@ function App() {
     }
   }, [addLog, isGeneratingChart, task])
 
+  const handleCancelAddApp = useCallback(() => {
+    setAddAppDraft(null)
+    setAddAppNameInput('')
+  }, [])
+
+  const handleBrowsePickExe = useCallback(async () => {
+    setPickBrowseBusy(true)
+    addLog('📂 请在弹出的系统窗口中选择要加入白名单的 .exe 程序…')
+    try {
+      const res = await fetch(apiUrl('/api/user-apps/pick'), { method: 'POST' })
+      const data = await res.json()
+      if (data.code === 501) {
+        addLog(`⚠️ ${data.message || '当前环境不支持浏览添加'}`)
+        return
+      }
+      if (data.code !== 200 || !data.path) {
+        addLog(data.message ? `ℹ️ ${data.message}` : '已取消选择')
+        return
+      }
+      setAddAppDraft({ path: data.path, suggestedName: data.suggestedName || '我的应用' })
+      setAddAppNameInput(data.suggestedName || '我的应用')
+    } catch (err) {
+      console.error(err)
+      addLog('❌ 无法连接后端或弹窗失败，请确认本机已启动 Python 后端')
+    } finally {
+      setPickBrowseBusy(false)
+    }
+  }, [addLog])
+
+  const handleConfirmAddApp = useCallback(async () => {
+    if (!addAppDraft?.path) return
+    const name = addAppNameInput.trim()
+    if (!name) {
+      addLog('❌ 请填写应用显示名称（例如用游戏名，之后说「打开某某」）')
+      return
+    }
+    try {
+      const res = await fetch(apiUrl('/api/user-apps'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, path: addAppDraft.path }),
+      })
+      const data = await res.json()
+      if (data.code === 200) {
+        addLog(`✅ ${data.message}`)
+        setAddAppDraft(null)
+        setAddAppNameInput('')
+        refreshUserApps()
+      } else {
+        addLog(`❌ ${data.message || '添加失败'}`)
+      }
+    } catch (err) {
+      console.error(err)
+      addLog('❌ 添加请求失败')
+    }
+  }, [addAppDraft, addAppNameInput, addLog, refreshUserApps])
+
+  const handleRemoveUserApp = useCallback(async (name) => {
+    try {
+      const res = await fetch(`${apiUrl('/api/user-apps')}?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.code === 200) {
+        addLog(`✅ ${data.message}`)
+        refreshUserApps()
+      } else {
+        addLog(`❌ ${data.message || '移除失败'}`)
+      }
+    } catch {
+      addLog('❌ 移除请求失败')
+    }
+  }, [addLog, refreshUserApps])
+
   /** POST /api/analyze-image，百炼 VL；失败时把 workflow 最后一步设为错误说明 */
   const analyzeLocalImage = useCallback(async (file, question = '', options = {}) => {
     if (!file || isAnalyzingImage) return
@@ -566,7 +664,21 @@ function App() {
                   <ImageAnalyzer onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
                   <FaceWellnessCamera onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
                   <ChartPanel onUpload={generateChartFromFile} disabled={isGeneratingChart} />
-                  <DefaultPanel isCmdActive={voice.isCmdActive} isWakeActive={voice.isWakeActive} onExampleClick={handleDefaultExample} />
+                  <DefaultPanel
+                    isCmdActive={voice.isCmdActive}
+                    isWakeActive={voice.isWakeActive}
+                    onExampleClick={handleDefaultExample}
+                    userExePickSupported={userExePickSupported}
+                    pickBrowseBusy={pickBrowseBusy}
+                    userAppList={userAppList}
+                    addAppDraft={addAppDraft}
+                    addAppNameInput={addAppNameInput}
+                    onAddAppNameChange={setAddAppNameInput}
+                    onBrowsePickExe={handleBrowsePickExe}
+                    onCancelAddApp={handleCancelAddApp}
+                    onConfirmAddApp={handleConfirmAddApp}
+                    onRemoveUserApp={handleRemoveUserApp}
+                  />
                 </>
               )}
               <WorkflowPanel steps={workflowSteps} />

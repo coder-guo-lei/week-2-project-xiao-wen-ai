@@ -1,5 +1,5 @@
 /**
- * XiaowenBot.jsx — 桌面吉祥物
+ * XiaowenBot.jsx — 桌面吉祥物,用 React 管状态与交互，用 内联 SVG 画形象，用 CSS 动画和类名切换做表情与特效
  *
  * - Pointer Events：按下拖动、松手根据速度启动惯性（requestAnimationFrame + 指数衰减 + 边缘反弹）
  * - prefers-reduced-motion：系统减少动效时不启用「甩出」惯性

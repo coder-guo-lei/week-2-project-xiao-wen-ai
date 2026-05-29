@@ -11,6 +11,7 @@ import subprocess
 import time
 import urllib.parse
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 
@@ -26,7 +27,6 @@ except ImportError:
 
 from config import (
     AMAP_KEY,
-    APP_LAUNCHERS,
     CHAT_TIMEOUT,
     DASHSCOPE_API_KEY,
     DASHSCOPE_CHAT_MODEL,
@@ -61,6 +61,7 @@ from config import (
     resolve_netease_cloud_exe,
 )
 import session
+from logic.user_apps import load_user_apps, merge_launchers
 
 logger = logging.getLogger(__name__)
 
@@ -1742,11 +1743,16 @@ def supported_app_message():
         "记事本", "计算器", "画图", "截图工具", "命令行", "终端",
         "文件管理器", "Edge 浏览器", "Chrome 浏览器", "微信", "QQ", "网易云", "抖音", "VSCode",
     ]
+    extra = ""
+    ua = load_user_apps()
+    if ua:
+        extra = "\n\n你在本机添加的白名单应用：" + "、".join(sorted(ua.keys())) + "。"
     return (
         "我目前可以帮你打开这些电脑应用：\n"
-        f"{ '、'.join(app_names) }。\n"
+        f"{ '、'.join(app_names) }。{extra}\n"
         "你可以这样说：打开记事本、启动计算器、打开文件管理器、打开 VSCode、打开抖音（本机客户端）；"
         "需要抖音网页版可说「打开抖音网页」。"
+        "在首页还可点「浏览电脑添加应用」，选好程序并起名后，即可说「打开【你起的名字】」。"
     )
 
 
@@ -1908,14 +1914,14 @@ def launch_local_app(task):
 
     matched_name = None
     command = None
-    for name, cmd in APP_LAUNCHERS.items():
+    for name, cmd in merge_launchers().items():
         if name.lower() in app_name or app_name in name.lower():
             matched_name = name
             command = cmd
             break
 
     if not command:
-        supported = "、".join(sorted(APP_LAUNCHERS.keys()))
+        supported = "、".join(sorted(merge_launchers().keys()))
         return False, f"暂时不支持打开「{app_name}」。当前支持：{supported}。"
 
     try:
@@ -1986,6 +1992,16 @@ def launch_local_app(task):
                     f"{reinstall}"
                 )
             return False, f"内部配置异常：未知的 resolve 类型「{kind}」。"
+
+        if command.startswith("exe:"):
+            exe_p = command[4:].strip()
+            pp = Path(exe_p)
+            if pp.is_file() and _start_exe_best_effort(pp):
+                return True, f"已为你打开：{matched_name}"
+            return False, (
+                f"「{matched_name}」的程序文件已不存在或无法启动。"
+                "请到小文首页重新用「浏览电脑添加应用」选择该程序。"
+            )
 
         # Windows 内置 start 需要 shell=True；白名单固定命令，避免执行用户输入。
         subprocess.Popen(command, shell=True)
@@ -3057,10 +3073,13 @@ def is_goodbye_intent(task):
 def parse_command(task, chat_history=None, client_location=None):
     """统一指令路由入口。
 
-    处理顺序很重要：全局告别优先级最高，其次是模拟世界锁定，
-    然后才进入天气、音乐、模拟世界创建、图片、应用和普通聊天等分支。
-    client_location：前端可选传入 { lat, lng }（WGS84），用于当地天气与附近美食。
-    每个分支会附带 mode 信息，前端据此显示模式栏或执行 resetUI。
+    处理顺序很重要：先匹配的分支先执行。概括顺序为：
+    告别 → 若已在模拟世界则只处理世界内/退出 → 可启动应用列表、知识库、网页图搜、
+    图片理解、图表 → 天气 → 音乐切歌/点歌与跟唱 → 附近美食（需有效定位）→
+    创建模拟世界 → 文生图 → 抖音网页特例 → 本机应用白名单 →「打开」泛化（含百度搜索）
+    → 默认大模型对话。中间还有若干 is_* 细分，以本函数 if 链为准。
+    client_location：前端可选 { lat, lng }（WGS84），用于当地天气与附近美食等。
+    各分支可附带 mode、resetUI、workflow 等，经 routes 带给前端。
     """
     task = task.strip()
 

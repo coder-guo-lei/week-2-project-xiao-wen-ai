@@ -37,9 +37,9 @@
 }
 .cp-segment.is-active {
   opacity: 1;
-  color: #fff;
+  color: var(--text-on-accent);
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-  box-shadow: 0 4px 14px rgba(20, 122, 110, 0.35);
+  box-shadow: 0 4px 18px var(--accent-glow);
 }
 .cp-body a {
   color: var(--accent);
@@ -47,7 +47,7 @@
   text-underline-offset: 3px;
 }
 .cp-segment.is-active a {
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 .cp-copy-row {
@@ -145,8 +145,9 @@
 }
 .cp-tts-btn--primary {
   border: none;
-  color: #fff;
+  color: var(--text-on-accent);
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  box-shadow: var(--shadow-accent);
 }
 .cp-tts-btn--primary.is-speaking {
   position: relative;
@@ -165,7 +166,11 @@
   to { transform: translateX(100%); }
 }
 .cp-tts-btn--primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-strong) 0%, #0a4a44 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-strong) 0%,
+    color-mix(in srgb, var(--accent-strong) 72%, #000 28%) 100%
+  );
 }
 .cp-tts-tip {
   margin: 0;
@@ -174,10 +179,10 @@
   line-height: 1.5;
 }
 .cp-tts-tip--error {
-  color: #ef4444;
+  color: var(--error);
 }
 .cp-tts-tip--info {
-  color: #0ea5e9;
+  color: var(--info);
 }
 .cp-tts-engine {
   max-width: min(240px, 55%);

@@ -1,11 +1,12 @@
 """
-生成「小文」项目答辩用 PPTX（需安装 python-pptx）。
+生成「小文智能语音助手」答辩 PPTX（与《答辩文档-小文智能语音助手.md》终稿对齐）。
+
+依赖：pip install python-pptx
 
 用法（仓库根目录）:
-    pip install python-pptx
     python generate_xiaowen_ppt.py
 
-输出文件与脚本同目录：xiaowen-report-final.pptx（使用 ASCII 文件名避免终端编码导致乱码）
+输出：xiaowen-defense-FINAL.pptx（ASCII 文件名，避免部分终端编码问题）
 """
 from pathlib import Path
 
@@ -16,137 +17,409 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 
 _ROOT = Path(__file__).resolve().parent
-OUT = str(_ROOT / "xiaowen-report-final.pptx")
+OUT = str(_ROOT / "xiaowen-defense-FINAL.pptx")
+
 prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 W, H = prs.slide_width, prs.slide_height
 FONT = "Microsoft YaHei"
 C = {
-    "bg": RGBColor(8, 12, 30), "panel": RGBColor(22, 31, 62),
-    "panel2": RGBColor(30, 43, 86), "white": RGBColor(248, 250, 255),
-    "muted": RGBColor(174, 190, 225), "cyan": RGBColor(58, 220, 255),
-    "blue": RGBColor(74, 144, 255), "purple": RGBColor(155, 92, 255),
-    "green": RGBColor(76, 230, 170), "orange": RGBColor(255, 180, 90),
-    "pink": RGBColor(255, 92, 180), "red": RGBColor(255, 105, 130)
+    "bg": RGBColor(8, 12, 30),
+    "panel": RGBColor(22, 31, 62),
+    "panel2": RGBColor(30, 43, 86),
+    "white": RGBColor(248, 250, 255),
+    "muted": RGBColor(174, 190, 225),
+    "cyan": RGBColor(58, 220, 255),
+    "blue": RGBColor(74, 144, 255),
+    "purple": RGBColor(155, 92, 255),
+    "green": RGBColor(76, 230, 170),
+    "orange": RGBColor(255, 180, 90),
+    "pink": RGBColor(255, 92, 180),
+    "red": RGBColor(255, 105, 130),
 }
 ACC = [C["cyan"], C["blue"], C["purple"], C["green"], C["orange"], C["pink"]]
+slide_no = [0]  # mutable counter for footer
+
 
 def fill(s, color, trans=0):
-    s.fill.solid(); s.fill.fore_color.rgb = color; s.fill.transparency = trans; s.line.fill.background()
+    s.fill.solid()
+    s.fill.fore_color.rgb = color
+    s.fill.transparency = trans
+    s.line.fill.background()
+
 
 def line(s, color, w=1, trans=0):
-    s.line.color.rgb = color; s.line.width = Pt(w); s.line.transparency = trans
+    s.line.color.rgb = color
+    s.line.width = Pt(w)
+    s.line.transparency = trans
+
 
 def txt(slide, x, y, w, h, text, size=14, color=None, bold=False, align=PP_ALIGN.LEFT):
     b = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-    tf = b.text_frame; tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]; p.text = text; p.alignment = align
-    p.font.name = FONT; p.font.size = Pt(size); p.font.bold = bold; p.font.color.rgb = color or C["white"]
+    tf = b.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.text = text
+    p.alignment = align
+    p.font.name = FONT
+    p.font.size = Pt(size)
+    p.font.bold = bold
+    p.font.color.rgb = color or C["white"]
     return b
 
+
 def bg(slide):
-    r = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, W, H); fill(r, C["bg"])
-    for x,y,sz,col,tr in [(10.4,-.5,3.2,C["purple"],55),(-.8,5.2,2.7,C["blue"],65),(5.2,1.1,1.5,C["cyan"],82)]:
-        o = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x), Inches(y), Inches(sz), Inches(sz)); fill(o, col, tr)
+    r = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, W, H)
+    fill(r, C["bg"])
+    for x, y, sz, col, tr in [(10.4, -0.5, 3.2, C["purple"], 55), (-0.8, 5.2, 2.7, C["blue"], 65), (5.2, 1.1, 1.5, C["cyan"], 82)]:
+        o = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x), Inches(y), Inches(sz), Inches(sz))
+        fill(o, col, tr)
     for i in range(8):
-        ln = slide.shapes.add_connector(1, Inches(.35), Inches(.6+i*.78), Inches(13), Inches(.6+i*.78)); line(ln, RGBColor(40,55,95), .35, 62)
+        ln = slide.shapes.add_connector(1, Inches(0.35), Inches(0.6 + i * 0.78), Inches(13), Inches(0.6 + i * 0.78))
+        line(ln, RGBColor(40, 55, 95), 0.35, 62)
 
-def footer(slide, n):
-    txt(slide,.55,7.04,6,.25,"小文智能 APP · AI Voice Assistant Project",8,RGBColor(130,150,195))
-    txt(slide,12.25,7.02,.55,.25,f"{n:02d}",10,C["cyan"],True,PP_ALIGN.RIGHT)
 
-def title(slide, t, sub, n):
-    bg(slide); txt(slide,.7,.42,8.7,.55,t,28,C["white"],True)
-    if sub: txt(slide,.72,1.02,9.6,.34,sub,11.5,C["muted"])
-    a=slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(.72), Inches(1.42), Inches(1.2), Inches(.05)); fill(a,C["cyan"])
-    footer(slide,n)
+def footer(slide):
+    slide_no[0] += 1
+    n = slide_no[0]
+    txt(slide, 0.55, 7.04, 6, 0.25, "小文智能语音助手 · 答辩材料（终稿）", 8, RGBColor(130, 150, 195))
+    txt(slide, 12.25, 7.02, 0.55, 0.25, f"{n:02d}", 10, C["cyan"], True, PP_ALIGN.RIGHT)
 
-def card(slide,x,y,w,h,t,body,color):
-    s=slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h)); fill(s,C["panel"],5); line(s,RGBColor(70,90,145),1,35)
-    b=slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(.08), Inches(h)); fill(b,color)
-    txt(slide,x+.22,y+.12,w-.38,.28,t,13,C["white"],True)
-    box=slide.shapes.add_textbox(Inches(x+.22), Inches(y+.55), Inches(w-.42), Inches(h-.65)); tf=box.text_frame; tf.word_wrap=True
-    for i,l in enumerate(body.split("\n")):
-        p=tf.paragraphs[0] if i==0 else tf.add_paragraph(); p.text=l; p.font.name=FONT; p.font.size=Pt(10.2); p.font.color.rgb=C["muted"]; p.space_after=Pt(3)
 
-def metric(slide,x,y,v,l,c):
-    s=slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(2.35), Inches(1.02)); fill(s,C["panel2"],4); line(s,c,1.2,12)
-    txt(slide,x+.1,y+.12,2.15,.36,v,22,c,True,PP_ALIGN.CENTER); txt(slide,x+.1,y+.62,2.15,.25,l,9.5,C["muted"],False,PP_ALIGN.CENTER)
+def title(slide, t, sub):
+    bg(slide)
+    txt(slide, 0.7, 0.42, 11.5, 0.55, t, 26, C["white"], True)
+    if sub:
+        txt(slide, 0.72, 1.02, 12.0, 0.38, sub, 11.5, C["muted"])
+    a = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.72), Inches(1.42), Inches(1.2), Inches(0.05))
+    fill(a, C["cyan"])
+    footer(slide)
 
-def chip(slide,x,y,t,c):
-    s=slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(1.58), Inches(.36)); fill(s,c,18); line(s,c,1,8)
-    txt(slide,x+.05,y+.03,1.48,.28,t,9.5,C["white"],True,PP_ALIGN.CENTER)
 
-# 1 封面
-s=prs.slides.add_slide(prs.slide_layouts[6]); bg(s)
-for r,col,tr in [(2.6,C["cyan"],70),(2.05,C["purple"],76),(1.5,C["blue"],82)]:
-    o=s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(9.25+(2.6-r)/2), Inches(1.75+(2.6-r)/2), Inches(r), Inches(r)); o.fill.background(); line(o,col,2,tr)
-o=s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(10.05), Inches(2.55), Inches(1), Inches(1)); fill(o,C["cyan"],8); line(o,C["white"],1,35)
-txt(s,.78,1.18,7.8,.35,"AI VOICE ASSISTANT · PROJECT REPORT",12,C["cyan"],True)
-txt(s,.75,1.68,7.8,.82,"小文智能 APP 项目汇报",38,C["white"],True)
-txt(s,.8,2.58,7.5,.55,"集 AI 对话、语音交互、天气查询、音乐播放、文生图、数据可视化与桌面控制于一体的智能助手原型",16,C["muted"])
-for i,(t,c) in enumerate([("React + Vite",C["blue"]),("Flask API",C["green"]),("DashScope / DeepSeek",C["purple"]),("SVG + zhdate",C["cyan"])]): chip(s,.82+i*1.82,3.38,t,c)
-txt(s,.82,6.25,4,.3,"汇报人：刘汉文    日期：2026",11,RGBColor(150,166,210)); footer(s,1)
+def card(slide, x, y, w, h, t, body, color):
+    s = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+    fill(s, C["panel"], 5)
+    line(s, RGBColor(70, 90, 145), 1, 35)
+    b = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(0.08), Inches(h))
+    fill(b, color)
+    txt(slide, x + 0.22, y + 0.12, w - 0.38, 0.28, t, 13, C["white"], True)
+    box = slide.shapes.add_textbox(Inches(x + 0.22), Inches(y + 0.52), Inches(w - 0.42), Inches(h - 0.62))
+    tf = box.text_frame
+    tf.word_wrap = True
+    for i, ln in enumerate(body.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = ln
+        p.font.name = FONT
+        p.font.size = Pt(10)
+        p.font.color.rgb = C["muted"]
+        p.space_after = Pt(2)
 
-# 2 目录
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"目录","从项目定位到落地实现，再到问题复盘与后续规划",2)
-items=[("01","项目定位与应用场景"),("02","应用方式、方法与核心数据"),("03","系统架构与技术实现"),("04","工作亮点"),("05","问题与改进"),("06","下季度计划与感谢")]
-for i,(no,t) in enumerate(items):
-    y=1.72+i*.78; txt(s,.9,y,.55,.3,no,15,C["cyan"],True,PP_ALIGN.CENTER); txt(s,1.65,y,5,.3,t,16,C["white"],True)
-    ln=s.shapes.add_connector(1,Inches(1.55),Inches(y+.42),Inches(11.8),Inches(y+.42)); line(ln,RGBColor(55,73,120),.5,45)
 
-# 3 项目定位
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"项目定位：面向个人桌面的 AI 智能助手","通过自然语言和语音交互，把 AI 能力转化为日常可用的应用入口",3)
-card(s,.75,1.7,3.75,1.55,"用户侧价值","一句话完成查询、播放、生成、翻译和打开应用\n降低操作门槛，强化语音助手体验",C["cyan"])
-card(s,4.8,1.7,3.75,1.55,"产品侧价值","将多个 AI 与生活服务能力汇聚到统一界面\n形成可演示、可扩展、可迭代的 App 原型",C["purple"])
-card(s,8.85,1.7,3.75,1.55,"技术侧价值","覆盖前端组件化、后端 API、模型调用、异步任务\n适合作为课程设计、项目展示和 AI 应用样板",C["green"])
-txt(s,.85,4.0,11.8,.36,"核心定位：不是单一聊天机器人，而是一个可执行任务的 AI 智能应用入口。",19,C["white"],True,PP_ALIGN.CENTER)
-for i,(t,b,c) in enumerate([("生活助手","天气 / 音乐 / 问答",C["blue"]),("创作助手","AI 对话 / 文生图",C["purple"]),("数据助手","文本/文件生成图表",C["cyan"]),("桌面助手","打开应用 / 快捷操作",C["green"])]): card(s,1.15+i*2.9,4.78,2.35,.95,t,b,c)
+def chip(slide, x, y, t, c):
+    s = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(1.55), Inches(0.34))
+    fill(s, c, 18)
+    line(s, c, 1, 8)
+    txt(slide, x + 0.04, y + 0.02, 1.47, 0.28, t, 9, C["white"], True, PP_ALIGN.CENTER)
 
-# 4 方法数据
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"应用方式、实现方法与核心数据","用户一句自然语言指令，系统自动完成意图识别、能力调用和结果展示",4)
-for i,(t,b,c) in enumerate([("输入","文字 / 语音 / 文件 / 示例指令",C["cyan"]),("识别","关键词规则 + 模式判断",C["blue"]),("调用","AI / 天气 / 音乐 / 图片 / 图表 / 本机应用",C["purple"]),("反馈","卡片展示 + 图表 + 日志 + 朗读",C["green"])]):
-    card(s,.85+i*3.05,1.62,2.55,1.12,t,b,c)
-metric(s,.95,3.45,"15+","已实现核心功能点",C["cyan"]); metric(s,3.65,3.45,"4+","后端核心 API",C["green"]); metric(s,6.35,3.45,"12+","前端组件模块",C["purple"]); metric(s,9.05,3.45,"80","单图表最大数据点",C["orange"])
-card(s,.95,5.08,3.75,1.1,"前端实现","React + Vite\n组件化界面 + localStorage 状态持久化\nWeb Speech API 语音识别与朗读",C["blue"])
-card(s,4.9,5.08,3.75,1.1,"后端实现","Flask + Flask-CORS\n统一 /api/send-task 指令入口\nrequests 调用第三方服务",C["green"])
-card(s,8.85,5.08,3.55,1.1,"数据实现","文本正则解析 + CSV / Excel 文件读取\nSVG 折线图 / 柱状图\n摘要统计与表格预览",C["purple"])
 
-# 5 架构
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"系统架构：前后端分离 + 多服务能力编排","以统一指令入口连接多个 AI 与工具服务",5)
-for i,(t,b,c) in enumerate([("用户交互层","文字输入\n语音识别\n文件上传\n示例指令\n划词工具",C["cyan"]),("前端展示层","ChatPanel\nWeatherCard\nMusicPlayer\nImagePreview\nChartPanel / XiaowenBot",C["blue"]),("后端调度层","Flask API\nparse_command\n图表解析\n时间与农历注入\n白名单应用启动",C["green"]),("外部能力层","DashScope / DeepSeek\n文生图 / VL\n高德天气\n网易云搜索\nWindows 应用",C["purple"])]): card(s,.75+i*3.1,1.65,2.62,3.85,t,b,c)
-txt(s,1.0,6.15,11.5,.38,"设计思路：前端负责体验和展示，后端负责安全调度与第三方能力调用，统一返回 type 字段驱动页面组件切换。",15,C["white"],True,PP_ALIGN.CENTER)
+# ---------- 1 封面 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+bg(s)
+for r, col, tr in [(2.6, C["cyan"], 70), (2.05, C["purple"], 76), (1.5, C["blue"], 82)]:
+    o = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(9.25 + (2.6 - r) / 2), Inches(1.75 + (2.6 - r) / 2), Inches(r), Inches(r))
+    o.fill.background()
+    line(o, col, 2, tr)
+o = s.shapes.add_shape(MSO_SHAPE.OVAL, Inches(10.05), Inches(2.55), Inches(1), Inches(1))
+fill(o, C["cyan"], 8)
+line(o, C["white"], 1, 35)
+txt(s, 0.78, 1.12, 8.5, 0.32, "毕业设计 / 课程设计 · 项目答辩", 11.5, C["cyan"], True)
+txt(s, 0.75, 1.58, 9.5, 0.85, "小文智能语音助手", 36, C["white"], True)
+txt(
+    s,
+    0.8,
+    2.52,
+    11.5,
+    0.75,
+    "浏览器端 AI 助手：自然语言与语音指令 → 统一意图路由 → 对话 / 天气 / 音乐 / 文生图 / 图表 / 看图 / 翻译朗读 / 本机应用 / 模拟世界",
+    14.5,
+    C["muted"],
+)
+for i, (t, c) in enumerate(
+    [
+        ("React 19 + Vite 8", C["blue"]),
+        ("Flask + Blueprint", C["green"]),
+        ("百炼 / 高德 / 讯飞", C["purple"]),
+        ("REST + JSON", C["cyan"]),
+    ]
+):
+    chip(s, 0.78 + i * 1.78, 3.42, t, c)
+txt(s, 0.82, 6.22, 5.5, 0.28, "汇报人：刘汉文    2026", 11, RGBColor(150, 166, 210))
+footer(s)
 
-# 6 亮点
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"工作亮点","能执行任务 + 时间与农历可信（服务端注入事实，减少模型编造）",6)
-h=[("01 多轮对话能力","支持连续追问：先问承德美食，再追问这些在哪能吃到。"),("02 AI 多能力集成","DashScope 为主、DeepSeek 可选兜底；文生图、翻译、天气、音乐、图表统一入口。"),("03 数据可视化能力","文本或 CSV / Excel 自动生成折线图、柱状图；无数据时可演示数据兜底。"),("04 时间与农历可信","LOCAL_TIMEZONE + zhdate：公历「此刻」与农历锚点写入提示，阴历生日换算有据可查。"),("05 异步文生图体验","任务提交后轮询状态，前端展示生成进度。"),("06 安全桌面控制","白名单启动本机应用；组件化与 Hook 拆分便于扩展。")]
-for i,(t,b) in enumerate(h): card(s,.8+(i%2)*6.1,1.58+(i//2)*1.55,5.65,1.18,t,b,ACC[i])
+# ---------- 2 目录（对齐答辩文档结构）----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "目录", "与《答辩文档》章节对应，便于展开讲述")
+items = [
+    ("01", "总览：定位、设计思想、分层架构"),
+    ("02", "技术选型：为何 React / Vite，优势何在"),
+    ("03", "技术选型：为何 Python / Flask，优势何在"),
+    ("04", "前后端协作与主要接口"),
+    ("05", "第三方服务与工程亮点"),
+    ("06", "桌面吉祥物与交互体验"),
+    ("07", "产出、局限与演示建议"),
+    ("08", "总结与致谢"),
+]
+for i, (no, t) in enumerate(items):
+    y = 1.58 + i * 0.66
+    txt(s, 0.88, y, 0.5, 0.28, no, 14, C["cyan"], True, PP_ALIGN.CENTER)
+    txt(s, 1.55, y, 10.5, 0.3, t, 15.5, C["white"], True)
+    ln = s.shapes.add_connector(1, Inches(1.48), Inches(y + 0.38), Inches(11.9), Inches(y + 0.38))
+    line(ln, RGBColor(55, 73, 120), 0.5, 45)
 
-# 7 问题改进
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"问题与改进","当前版本已能演示核心能力，但仍需要从稳定性、智能化和工程化继续提升",7)
-rows=[("意图识别","关键词规则为主","引入大模型意图分类，减少误判"),("图表能力","当前单系列为主","扩展多系列、饼图和导出图片/PDF"),("音乐播放","受版权和外链限制","增加多结果选择、合法音乐源和失败重试"),("时间与农历","模型易编造日期 / 阴历","已接入服务端注入 + zhdate；持续校验闰月等边界"),("后端结构","功能集中在 app.py","拆分 services、utils、config 模块"),("部署形态","本地开发模式","关闭 debug，增加生产配置和日志监控")]
-for i,(a,b,c) in enumerate(rows):
-    y=1.75+i*.86; card(s,.85,y,2.3,.58,a,"",ACC[i%6]); txt(s,3.45,y+.08,3.1,.25,b,11,C["muted"]); txt(s,7.0,y+.08,5.3,.25,c,11,C["muted"])
+# ---------- 3 总览：一句话 + 四大思想 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "项目总览", "单入口、意图驱动、前后端分离、安全白名单")
+txt(s, 0.85, 1.55, 11.8, 0.95, "在浏览器中运行的「小文」：用户通过文字或语音发出自然语言指令，系统在统一意图路由 parse_command 下完成多种能力，并以 REST API + JSON 与前端联动。", 13.5, C["white"])
+for i, (t, b) in enumerate(
+    [
+        ("单入口", "POST /api/send-task 统一接指令"),
+        ("意图驱动", "按约定顺序匹配分支，映射到具体业务"),
+        ("前后端分离", "密钥与第三方调用在后端 .env；前端只持 UI 状态"),
+        ("安全白名单", "本机启动仅允许配置表映射，禁止用户原文进 shell"),
+    ]
+):
+    card(s, 0.78 + (i % 2) * 6.15, 2.55 + (i // 2) * 1.38, 5.75, 1.22, t, b, ACC[i])
 
-# 8 下季度计划
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"下季度计划","围绕“更智能、更稳定、更可展示、更可扩展”推进下一阶段迭代",8)
-plans=[("第 1 阶段\n体验增强","完善多轮记忆\n自动朗读开关\n优化默认示例\n增强错误提示",C["cyan"]),("第 2 阶段\n能力扩展","日程 / 备忘录\n图片历史与下载\n多系列图表\n联网搜索入口",C["purple"]),("第 3 阶段\n工程优化","后端服务模块化\n图表服务拆分\n日志和错误码\n生产环境配置",C["green"]),("第 4 阶段\n部署展示","Docker 或云部署\nHTTPS / Nginx\n演示脚本\n完善答辩材料",C["orange"])]
-for i,(t,b,c) in enumerate(plans): card(s,.8+i*3.05,1.75,2.65,3.65,t,b,c)
-txt(s,1.0,6.08,11.2,.35,"目标：从“本地可运行的 AI 助手原型”升级为“可持续迭代、可部署展示的智能应用平台”。",16,C["white"],True,PP_ALIGN.CENTER)
+# ---------- 4 分层架构（文字版）----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "系统架构（逻辑分层）", "表现层 → 接入层 → 业务编排 → 自建封装 / 第三方")
+arch = (
+    "【浏览器】React 组件 + Web Speech / getUserMedia / Audio / Selection / Geolocation\n"
+    "        ↓  HTTP / JSON / multipart / 音频二进制\n"
+    "【Flask】Blueprint：/api/send-task、/api/tts、/api/generate-chart 等\n"
+    "        ↓  函数调用\n"
+    "【task_parser】意图解析：天气、音乐、图表、对话、模拟世界、本机启动…\n"
+    "        ├─ services：讯飞 TTS / IAT\n"
+    "        └─ HTTP：DashScope、高德、DeepSeek（可选）"
+)
+box = s.shapes.add_textbox(Inches(0.82), Inches(1.58), Inches(11.7), Inches(4.85))
+tf = box.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = arch
+p.font.name = FONT
+p.font.size = Pt(12.5)
+p.font.color.rgb = C["muted"]
+for i, (t, c) in enumerate([("前端 CSR", C["blue"]), ("REST 接入", C["cyan"]), ("意图编排", C["green"]), ("云与语音", C["purple"])]):
+    chip(s, 0.85 + i * 1.72, 6.55, t, c)
 
-# 9 演示路径
-s=prs.slides.add_slide(prs.slide_layouts[6]); title(s,"建议演示路径","用一条完整用户路径展示小文智能 APP 的能力闭环",9)
-demos=[("1. 语音唤醒","说“小文小文”，进入指令识别"),("2. 生活查询","询问“承德天气怎么样”"),("3. 连续对话","先问承德美食，再追问位置"),("4. 数据图表","生成折线图 一月:120 二月:180 三月:150"),("5. AI 创作","说“画一只水彩小猫”"),("6. 桌面控制","说“打开计算器”")]
-for i,(t,b) in enumerate(demos): card(s,.95+(i%3)*4.05,1.65+(i//3)*2.0,3.45,1.35,t,b,ACC[i])
-txt(s,1.0,6.05,11.2,.4,"演示重点：让观众看到小文不是静态页面，而是可以理解指令、调用能力并完成任务的 AI 应用。",15,C["white"],True,PP_ALIGN.CENTER)
+# ---------- 5 技术选型：React + Vite ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "为何选用 React 与 Vite", "答辩可复述：动机 → 在本项目中的收益")
+card(
+    s,
+    0.75,
+    1.55,
+    3.95,
+    2.45,
+    "React",
+    "多面板 contentType 切换：声明式 UI = f(状态)\n组件边界：ChatPanel / ChartPanel 等\nHook 复用：语音、音乐播放器逻辑\n生态成熟，易扩展（如 TS）",
+    C["blue"],
+)
+card(
+    s,
+    4.85,
+    1.55,
+    3.95,
+    2.45,
+    "使用后的优势",
+    "可维护：App.jsx 主线清晰\n与浏览器 API 生命周期契合（useEffect）\nReact 19 + Vite Fast Refresh 开发效率高",
+    C["cyan"],
+)
+card(
+    s,
+    8.95,
+    1.55,
+    3.95,
+    2.45,
+    "Vite",
+    "ESM 冷启动快；/api 代理到 5001\npnpm build 输出 dist，职责分离\n生产可用 VITE_API_URL 配置 apiBase.js",
+    C["purple"],
+)
+txt(s, 0.85, 6.35, 11.6, 0.42, "诚实边界：若页面极简、无多状态，静态 HTML 亦可；本项目「多模式 + Hook」才是 React 优势场景。", 11, C["muted"])
 
-# 10 感谢
-s=prs.slides.add_slide(prs.slide_layouts[6]); bg(s)
-txt(s,.9,1.65,11.5,.65,"感谢聆听",42,C["white"],True,PP_ALIGN.CENTER)
-txt(s,1.45,2.55,10.4,.5,"小文智能 APP 将继续向更自然、更稳定、更具执行力的个人 AI 助手演进",18,C["muted"],False,PP_ALIGN.CENTER)
-for i,(t,c) in enumerate([("能听",C["cyan"]),("能说",C["blue"]),("能聊",C["purple"]),("能画",C["pink"]),("能看",C["orange"]),("能开",C["green"])]): chip(s,1.45+i*1.65,3.55,t,c)
-txt(s,3.0,5.05,7.3,.45,"Q&A",28,C["cyan"],True,PP_ALIGN.CENTER); footer(s,10)
+# ---------- 6 技术选型：Python + Flask ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "为何选用 Python 与 Flask", "快速编排多云 API；框架轻、答辩链路短")
+card(
+    s,
+    0.75,
+    1.55,
+    3.95,
+    2.45,
+    "Python",
+    "HTTP + JSON 串联百炼 / 高德 / DeepSeek\nopenpyxl、正则、csv 处理图表数据\nparse_command 分支多，可读、可讲",
+    C["green"],
+)
+card(
+    s,
+    4.85,
+    1.55,
+    3.95,
+    2.45,
+    "Flask",
+    "REST + jsonify + 少量二进制响应\nBlueprint 分层：routes / logic / services\nCORS 显式配置，TTS 自定义响应头可读",
+    C["blue"],
+)
+card(
+    s,
+    8.95,
+    1.55,
+    3.95,
+    2.45,
+    "使用后的优势",
+    "app.py 装配；routes 只做 HTTP\n标准库 subprocess/pathlib 做本机安全启动\n生产可换 gunicorn，不绑云平台",
+    C["orange"],
+)
+txt(s, 0.85, 6.35, 11.6, 0.42, "诚实边界：大团队全家桶可选 Django/FastAPI；本项目核心是意图编排与第三方 API。", 11, C["muted"])
+
+# ---------- 7 前端能力与契约 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "前端能力与接口契约", "浏览器原生能力 + 统一 apiUrl")
+card(
+    s,
+    0.75,
+    1.52,
+    5.9,
+    2.55,
+    "浏览器 API",
+    "Web Speech：唤醒 + 单次指令\ngetUserMedia：麦克风 / 摄像头\nFetch + Blob：TTS、图表上传\nGeolocation：当地天气 / 附近推荐\nSelection：划词翻译工具条",
+    C["cyan"],
+)
+card(
+    s,
+    6.85,
+    1.52,
+    5.65,
+    2.55,
+    "主要接口",
+    "POST /api/send-task（task、history、location）\nPOST /api/tts（音频流）\nGET /api/image-status/:id\nPOST /api/generate-chart、analyze-image\nPOST /api/translate-selection",
+    C["purple"],
+)
+txt(s, 0.82, 6.32, 11.7, 0.45, "开发态：Vite 将 /api 代理到本机 5001；生产通过 apiBase.js 配置 API 根地址。", 12, C["white"])
+
+# ---------- 8 第三方服务 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "第三方服务", "密钥均在 backend/.env，不进入前端仓库")
+for i, (t, b, c) in enumerate(
+    [
+        ("阿里云百炼", "对话、文生图、VL 看图、翻译等\nDASHSCOPE_API_KEY", C["purple"]),
+        ("高德开放平台", "地理编码、天气预报\nAMAP_KEY", C["blue"]),
+        ("讯飞开放平台", "TTS 朗读、可选 WAV 听写\n与控制台产品开通一致", C["cyan"]),
+        ("DeepSeek（可选）", "OpenAI 兼容对话/翻译/知识库\n不能替代生图与看图", C["green"]),
+    ]
+):
+    card(s, 0.78 + (i % 2) * 6.15, 1.55 + (i // 2) * 1.92, 5.85, 1.78, t, b, ACC[i])
+
+# ---------- 9 功能模块映射（简表）----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "功能与前端载体", "type 字段驱动 contentType 切换")
+rows = [
+    ("多轮对话", "ChatPanel", "DashScope / DeepSeek"),
+    ("天气", "WeatherCard", "高德"),
+    ("音乐", "MusicPlayer", "搜索外链"),
+    ("文生图", "ImagePreview + 轮询", "百炼异步任务"),
+    ("图表", "ChartPanel", "正则 + CSV/Excel"),
+    ("看图 / 肤质", "ImageAnalyzer / FaceWellness", "百炼 VL"),
+    ("本机应用", "文案 type:app", "白名单 launch"),
+    ("朗读", "ChatPanel + xfyunTts", "讯飞 TTS"),
+]
+for i, (a, b, c) in enumerate(rows):
+    y = 1.52 + i * 0.62
+    txt(s, 0.85, y, 2.0, 0.28, a, 11.5, C["white"], True)
+    txt(s, 2.95, y, 3.4, 0.28, b, 11, C["muted"])
+    txt(s, 6.55, y, 5.9, 0.28, c, 11, C["cyan"])
+
+# ---------- 10 工程亮点 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "工程亮点", "可演示、可解释、有安全边界")
+highlights = [
+    ("统一意图路由", "parse_command 顺序敏感，便于答辩讲分支优先级"),
+    ("密钥后端化", "前端仅 apiUrl；.env 被 .gitignore 忽略"),
+    ("异步文生图", "taskId 轮询 + 前端进度与超时对齐"),
+    ("桌面吉祥物 XiaowenBot", "内联 SVG + Pointer 拖拽 + rAF 惯性 + CSS 表情\n纯前端、不调接口"),
+    ("无障碍与体验", "prefers-reduced-motion 关闭甩动惯性"),
+    ("质量工具", "ESLint + react-hooks；pnpm build 产物可部署"),
+]
+for i, (t, b) in enumerate(highlights):
+    card(s, 0.78 + (i % 2) * 6.1, 1.52 + (i // 2) * 1.42, 5.85, 1.28, t, b, ACC[i % 6])
+
+# ---------- 11 产出与局限 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "产出物与局限（诚实说明）", "答辩加分：主动说明边界")
+card(
+    s,
+    0.75,
+    1.52,
+    5.85,
+    2.55,
+    "产出物",
+    "pnpm dev + python app.py 可演示\npnpm build → dist 静态资源\n.env.example 配置说明\n答辩文档 + 代码导读",
+    C["green"],
+)
+card(
+    s,
+    6.75,
+    1.52,
+    5.95,
+    2.55,
+    "局限",
+    "音乐外链受版权与平台策略影响\n语音识别依赖浏览器与环境权限\n模拟世界等状态在进程内存，重启丢失\ntask_parser 体量大，靠章节注释维护顺序",
+    C["orange"],
+)
+
+# ---------- 12 演示建议 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "建议演示路径", "约 8～12 分钟可裁剪")
+demos = [
+    ("1", "文字天气 → WeatherCard + 模式栏"),
+    ("2", "AI 对话 + 多轮一句 → history"),
+    ("3", "服务端 TTS 朗读 → 非浏览器自带"),
+    ("4", "文生图或图表二选一 → 工作流面板"),
+    ("5", "打开计算器 → 白名单安全设计"),
+    ("6", "（可选）划词翻译"),
+]
+for i, (no, t) in enumerate(demos):
+    card(s, 0.82 + (i % 3) * 4.05, 1.55 + (i // 3) * 1.42, 3.75, 1.22, f"步骤 {no}", t, ACC[i % 6])
+txt(s, 0.88, 6.15, 11.5, 0.4, "演示前检查：backend/.env 已配置百炼、高德、讯飞至少保证对话 + 天气 + 朗读其一畅通。", 12, C["muted"])
+
+# ---------- 13 总结 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+title(s, "总结陈述", "技术选型与架构一句话收束")
+txt(
+    s,
+    0.82,
+    1.55,
+    11.6,
+    4.85,
+    "本项目基于 React + Vite 与 Python Flask：前端因「多面板状态与 Hook 复用」选择 React，因「热更新与 /api 代理」选择 Vite；后端因「快速编排多云 REST」选择 Python，因「轻量、路由清晰、易答辩讲述」选择 Flask。\n\n"
+    "通过 RESTful API 整合百炼、高德、讯飞及可选 DeepSeek；以 parse_command 意图路由为核心，以前端组件化状态与浏览器语音/媒体 API 提供交互。\n\n"
+    "体现前后端分离、密钥隔离、白名单安全与异步任务处理等工程化基本素养。",
+    13.5,
+    C["white"],
+)
+
+# ---------- 14 致谢 ----------
+s = prs.slides.add_slide(prs.slide_layouts[6])
+bg(s)
+txt(s, 0.85, 1.72, 11.6, 0.7, "感谢聆听", 40, C["white"], True, PP_ALIGN.CENTER)
+txt(s, 1.2, 2.62, 10.9, 0.45, "小文智能语音助手 — 答辩 PPT 终稿（与文档同步）", 16, C["muted"], False, PP_ALIGN.CENTER)
+for i, (t, c) in enumerate([("听", C["cyan"]), ("说", C["blue"]), ("聊", C["purple"]), ("画", C["pink"]), ("看", C["orange"]), ("控", C["green"])]):
+    chip(s, 1.35 + i * 1.55, 3.45, t, c)
+txt(s, 3.15, 5.1, 7.0, 0.45, "Q & A", 28, C["cyan"], True, PP_ALIGN.CENTER)
+footer(s)
 
 prs.save(OUT)
-print(OUT)
+print("已生成:", OUT)

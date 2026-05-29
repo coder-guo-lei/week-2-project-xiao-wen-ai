@@ -4,15 +4,35 @@
  * 功能：右侧面板无内容时显示，向用户介绍可用指令类型。
  *   - 状态指示灯：动态显示"识别指令中 / 待机中 / 监听已关闭"
  *   - 示例卡片网格：天气 / 音乐 / 绘画 / 知识库 / 世界 / 摄像头肤质洞察等
+ *   - 浏览电脑添加应用到白名单（Windows + 本机后端）：选 .exe 并起名后，可说「打开【名称】」
  * Props：
  *   isCmdActive  {boolean} 语音识别进行中
  *   isWakeActive {boolean} 唤醒词监听开启中
  *   onExampleClick(example) — example 含 text / type；type 为 face_camera 时由 App 滚动到摄像头区块
+ *   userExePickSupported {boolean} 后端是否支持原生选 exe
+ *   pickBrowseBusy {boolean} 正在等待系统选文件对话框
+ *   userAppList {{ name, path }[]} 已添加白名单
+ *   addAppDraft {{ path, suggestedName } | null} 选完 exe 后弹出确认层
+ *   addAppNameInput / onAddAppNameChange 受控输入
+ *   onBrowsePickExe / onCancelAddApp / onConfirmAddApp / onRemoveUserApp
  */
 import './DefaultPanel.css'
 
-export default function DefaultPanel({ isCmdActive, isWakeActive, onExampleClick }) {
-  // 示例指令：多数交给 App.autoSendTask；face_camera 仅定位到肤质摄像头 UI
+export default function DefaultPanel({
+  isCmdActive,
+  isWakeActive,
+  onExampleClick,
+  userExePickSupported = true,
+  pickBrowseBusy = false,
+  userAppList = [],
+  addAppDraft = null,
+  addAppNameInput = '',
+  onAddAppNameChange,
+  onBrowsePickExe,
+  onCancelAddApp,
+  onConfirmAddApp,
+  onRemoveUserApp,
+}) {
   const examples = [
     { icon: '🌤️', text: '保定天气怎么样？', type: 'weather' },
     { icon: '🎵', text: '随机播放一首歌', type: 'music' },
@@ -24,7 +44,6 @@ export default function DefaultPanel({ isCmdActive, isWakeActive, onExampleClick
 
   return (
     <div className="dp">
-      {/* 根据语音 / 唤醒 Hook 状态显示当前麦克风相关状态 */}
       <div className="dp-status">
         <span className="dp-status-label">当前状态</span>
         {isCmdActive
@@ -34,6 +53,71 @@ export default function DefaultPanel({ isCmdActive, isWakeActive, onExampleClick
             : <span className="dp-dot dp-dot--gray">监听已关闭</span>
         }
       </div>
+
+      {userExePickSupported && (
+        <div className="dp-add-app">
+          <button
+            type="button"
+            className="dp-add-app-btn"
+            disabled={pickBrowseBusy}
+            onClick={() => onBrowsePickExe?.()}
+          >
+            {pickBrowseBusy ? '正在等待你选择程序…' : '📂 浏览电脑，添加应用到白名单'}
+          </button>
+          <p className="dp-add-app-hint">
+            点击后会弹出系统文件框，选中本机 .exe 并起一个好记的名字，之后直接说「打开【名字】」即可启动。
+          </p>
+          {userAppList.length > 0 && (
+            <ul className="dp-user-apps">
+              {userAppList.map((row) => (
+                <li key={row.name} className="dp-user-apps-item">
+                  <span className="dp-user-apps-name" title={row.path}>{row.name}</span>
+                  <button
+                    type="button"
+                    className="dp-user-apps-remove"
+                    onClick={() => onRemoveUserApp?.(row.name)}
+                    aria-label={`从白名单移除 ${row.name}`}
+                  >
+                    移除
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {addAppDraft && (
+        <div
+          className="dp-modal-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCancelAddApp?.()
+          }}
+        >
+          <div className="dp-modal" role="dialog" aria-modal="true" aria-labelledby="dp-modal-title" onClick={(e) => e.stopPropagation()}>
+            <h4 id="dp-modal-title" className="dp-modal-title">确认加入白名单</h4>
+            <p className="dp-modal-path" title={addAppDraft.path}>{addAppDraft.path}</p>
+            <label className="dp-modal-label" htmlFor="dp-add-app-name">对小文说的名称（例如：原神、剪映）</label>
+            <input
+              id="dp-add-app-name"
+              className="dp-modal-input"
+              value={addAppNameInput}
+              onChange={(e) => onAddAppNameChange?.(e.target.value)}
+              maxLength={24}
+              autoComplete="off"
+            />
+            <div className="dp-modal-actions">
+              <button type="button" className="dp-modal-btn dp-modal-btn--ghost" onClick={() => onCancelAddApp?.()}>
+                取消
+              </button>
+              <button type="button" className="dp-modal-btn dp-modal-btn--primary" onClick={() => onConfirmAddApp?.()}>
+                确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h4 className="dp-heading">试试这些指令</h4>
       <div className="dp-grid">

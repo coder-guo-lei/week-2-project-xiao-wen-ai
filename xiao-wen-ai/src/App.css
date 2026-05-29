@@ -3,11 +3,11 @@
 .app {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 28px 24px 40px;
+  padding: var(--space-8) var(--space-6) var(--space-10);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: var(--space-8);
 }
 
 /* header */
@@ -17,65 +17,69 @@
 .app-logo {
   display: inline-block;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.25rem);
-  font-weight: 600;
+  font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+  font-weight: var(--font-semibold);
   font-style: italic;
   letter-spacing: 0.04em;
   color: var(--accent-strong);
-  text-shadow: 0 1px 0 rgba(255, 252, 247, 0.6);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 @media (prefers-color-scheme: dark) {
   .app-logo {
     color: var(--accent-soft);
-    text-shadow: 0 1px 12px rgba(45, 212, 191, 0.25);
+    text-shadow: 0 1px 14px var(--accent-glow);
   }
 }
 .app-subtitle {
-  margin: 6px 0 0;
-  font-size: 14px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
   color: var(--text-tertiary);
-  font-weight: 500;
+  font-weight: var(--font-medium);
   letter-spacing: 0.12em;
 }
 
 /* body two-column */
 .app-body {
-  display: flex; gap: 24px; flex: 1; min-height: 0;
+  display: flex;
+  gap: var(--space-6);
+  flex: 1;
+  min-height: 0;
 }
 
 /* panels */
 .panel {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: var(--shadow-panel);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-raised);
   display: flex;
   flex-direction: column;
 }
 .panel--left {
   flex: 1;
   min-width: 0;
-  gap: 20px;
+  gap: var(--space-5);
 }
 .panel--right {
   flex: 0 0 340px;
 }
 
 .panel-title {
-  margin: 0 0 14px;
-  font-size: 15px;
-  font-weight: 700;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
   letter-spacing: 0.06em;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .panel-content {
-  flex: 1; min-height: 0;
-  border: 1px solid var(--card-border);
-  border-radius: 14px;
-  padding: 20px;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -88,21 +92,21 @@
   justify-content: flex-start;
   flex-direction: column;
   gap: 0;
-  padding: 18px;
+  padding: var(--space-4) var(--space-3);
 }
 
 /* 天气：卡片随内容增高，勿与整条反馈区等高造成渐变内留白 */
 .panel-content--weather {
   align-items: center;
   justify-content: flex-start;
-  padding: 16px 18px 18px;
+  padding: var(--space-4) var(--space-3) var(--space-4);
 }
 .panel-content--weather .feedback-stack {
   min-height: 0;
   flex: 0 1 auto;
   width: 100%;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 .feedback-stack {
@@ -112,7 +116,7 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .panel-content--chat .feedback-stack,

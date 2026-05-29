@@ -21,7 +21,6 @@
  */
 import { useRef, useEffect } from 'react'
 import './CommandInput.css'
-
 export default function CommandInput({
   task,
   setTask,

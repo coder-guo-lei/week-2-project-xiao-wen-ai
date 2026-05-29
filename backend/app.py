@@ -3,7 +3,7 @@
 import logging  # 标准库：分级日志
 
 from flask import Flask  # Web 框架：WSGI 应用对象
-from flask_cors import CORS  # 跨域：浏览器前端（5173）可调用本机 API（5001）
+from flask_cors import CORS  # 跨域：允许浏览器前端（如 Vite 开发端口）调用本机 API（默认 5001）
 
 import config  # noqa: F401 — 副作用：执行 config 时加载 .env 并写入 os.environ
 from config import AMAP_KEY, DASHSCOPE_API_KEY, DEEPSEEK_API_KEY, DEEPSEEK_CHAT_MODEL  # 仅用于启动时打日志
