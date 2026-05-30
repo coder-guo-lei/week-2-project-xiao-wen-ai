@@ -33,6 +33,7 @@ import ChartPanel from './components/ChartPanel'
 import XiaowenBot from './components/XiaowenBot'
 import SettingsPanel from './components/SettingsPanel'
 import PreferencesGuide from './components/PreferencesGuide'
+import LoginParticleBg from './components/LoginParticleBg'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
@@ -666,13 +667,18 @@ function App() {
   const stageTitle = STAGE_TITLES[contentType] || STAGE_TITLES.default
 
   return (
-    <div className="app">
+    <div className="app-shell">
+      <LoginParticleBg className="app-shell-bg" ambient />
+      <div className="app">
       <SelectionToolbar />
       <XiaowenBot />
       <header className="app-topbar">
         <div className="app-brand">
-          <span className="app-logo">小文</span>
-          <span className="app-subtitle">智能语音助手</span>
+          <div className="app-logo-icon" aria-hidden>W</div>
+          <div className="app-brand-text">
+            <span className="app-logo">小文</span>
+            <span className="app-subtitle">智能语音助手</span>
+          </div>
         </div>
         <ModeBar
           variant="top"
@@ -799,6 +805,7 @@ function App() {
         />
       )}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      </div>
     </div>
   )
 }

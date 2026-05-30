@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   animation: prefGuideFadeIn 0.2s ease;
 }
 
@@ -24,10 +24,12 @@
   width: min(400px, 90vw);
   padding: 28px 28px 24px;
   text-align: center;
-  background: var(--surface-raised, #fff);
-  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
-  border-radius: var(--radius-lg, 16px);
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.2);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
   animation: prefGuideSlideUp 0.25s ease;
 }
 
@@ -37,17 +39,17 @@
 }
 
 .pref-guide-card h3 {
-  font-family: var(--font-display, inherit);
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary);
   margin-bottom: 10px;
 }
 
 .pref-guide-card p {
   font-size: 0.9rem;
   line-height: 1.6;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
@@ -65,19 +67,23 @@
   font-weight: 500;
   cursor: pointer;
   border: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .pref-guide-btn--primary {
-  background: linear-gradient(135deg, #4a90d9, #00d4aa);
-  color: #fff;
+  background: var(--brand-gradient);
+  color: var(--text-on-accent);
 }
 
 .pref-guide-btn--ghost {
   background: transparent;
-  color: var(--text-tertiary, #94a3b8);
+  color: var(--text-tertiary);
 }
 
 .pref-guide-btn:hover {
-  opacity: 0.9;
+  opacity: 0.92;
+}
+
+.pref-guide-btn--primary:hover {
+  transform: translateY(-1px);
 }

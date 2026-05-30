@@ -50,7 +50,7 @@ function isMobile() {
   return /Mobi|Android/i.test(navigator.userAgent);
 }
 
-export default function LoginParticleBg({ className = '' }) {
+export default function LoginParticleBg({ className = '', ambient = false }) {
   const containerRef = useRef(null);
   const animFrameRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0 });
@@ -62,7 +62,7 @@ export default function LoginParticleBg({ className = '' }) {
     if (!container) return;
 
     // ── 粒子数量 ──────────────────────────
-    const particleCount = isMobile() ? 300 : 800;
+    const particleCount = isMobile() ? 200 : (ambient ? 350 : 800);
 
     // ── 场景 / 相机 / 渲染器 ─────────────
     const scene = new THREE.Scene();
@@ -165,8 +165,8 @@ export default function LoginParticleBg({ className = '' }) {
       animFrameRef.current = requestAnimationFrame(animate);
 
       // 粒子自转
-      particleSystem.rotation.x += 0.0003;
-      particleSystem.rotation.y += 0.0005;
+      particleSystem.rotation.x += ambient ? 0.00015 : 0.0003;
+      particleSystem.rotation.y += ambient ? 0.00025 : 0.0005;
 
       // 鼠标视差：lerp 平滑插值
       targetRef.current.x = mouseRef.current.x * 0.3;
