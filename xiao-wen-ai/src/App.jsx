@@ -7,14 +7,18 @@
  *   - 向后端 /api/send-task 发送指令，根据返回 type / mode / resetUI 切换界面
  *   - 处理“再见小文”：先展示告别回复，再延迟回到初始默认面板
  *
- * 子组件：CommandInput、ModeBar、WorkflowPanel、左侧反馈区（DefaultPanel / Chat / Weather / Music / Image / Chart 等）、
- * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、右侧 LogPanel、吉祥物 XiaowenBot
+ * 子组件：CommandInput、ModeBar、WorkflowPanel、主舞台反馈区（DefaultPanel / Chat / Weather / Music / Image / Chart 等）、
+ * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、底部 ActivityDock 日志、吉祥物 XiaowenBot
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
+import { usePreferences } from './contexts/PreferencesContext'
 import './App.css'
 
 import CommandInput from './components/CommandInput'
-import LogPanel from './components/LogPanel'
+import ActivityDock from './components/ActivityDock'
+import ChatHistoryPanel from './components/ChatHistoryPanel'
 import MusicPlayer from './components/MusicPlayer'
 import WeatherCard from './components/WeatherCard'
 import ChatPanel from './components/ChatPanel'
@@ -27,16 +31,29 @@ import ImageAnalyzer from './components/ImageAnalyzer'
 import FaceWellnessCamera from './components/FaceWellnessCamera'
 import ChartPanel from './components/ChartPanel'
 import XiaowenBot from './components/XiaowenBot'
+import SettingsPanel from './components/SettingsPanel'
+import PreferencesGuide from './components/PreferencesGuide'
+import LoginParticleBg from './components/LoginParticleBg'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
-import { apiUrl } from './apiBase'
+import { apiFetch, apiUrl } from './apiBase'
 
 // ---------- 与 localStorage 同步的键名、列表长度上限 ----------
 const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
 const CHAT_HISTORY_KEY = 'xiaowen_chat_history'
 const MAX_COMMAND_HISTORY = 8
 const MAX_CHAT_HISTORY = 12
+const LOG_PANEL_OPEN_KEY = 'xiaowen_log_panel_open'
+
+const STAGE_TITLES = {
+  default: '智慧助手空间',
+  chat: '对话回复',
+  weather: '天气查询',
+  music: '音乐播放',
+  image: '图片生成',
+  chart: '数据图表',
+}
 /** 文生图轮询最长等待（毫秒）；略大于后端 IMAGE_TASK_TIMEOUT（默认 120s），避免无限轮询 */
 const IMAGE_POLL_MAX_MS = 130_000
 
@@ -98,9 +115,20 @@ function fetchClientLocation(timeoutMs = 6500) {
 }
 
 function App() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const { shouldShowGuide } = usePreferences()
   // ---------- 输入与日志 ----------
   const [task, setTask] = useState('') // 与 CommandInput 受控绑定；发送成功后会清空
-  const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 右侧 LogPanel 数据源
+  const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 运行日志数据源
+  const [logPanelOpen, setLogPanelOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOG_PANEL_OPEN_KEY)
+      if (saved === '1') return true
+      if (saved === '0') return false
+    } catch { /* ignore */ }
+    return false
+  })
   // ---------- 左栏主展示区：根据 contentType 切换子组件 ----------
   const [contentType, setContentType] = useState('default')
   const [chatReply, setChatReply] = useState('') // ChatPanel 展示的纯文本
@@ -146,6 +174,16 @@ function App() {
   /** 选完 exe 待用户确认名称：{ path, suggestedName } */
   const [addAppDraft, setAddAppDraft] = useState(null)
   const [addAppNameInput, setAddAppNameInput] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [sessionId] = useState(() => {
+    try {
+      return crypto.randomUUID()
+    } catch {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+    }
+  })
+  const [rightTab, setRightTab] = useState('log') // ActivityDock: 'log' | 'history'
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
 
@@ -158,6 +196,12 @@ function App() {
   const clearLogList = useCallback(() => {
     setLogList([])
   }, [])
+
+  const toggleLogPanel = useCallback(() => setLogPanelOpen((v) => !v), [])
+
+  useEffect(() => {
+    try { localStorage.setItem(LOG_PANEL_OPEN_KEY, logPanelOpen ? '1' : '0') } catch { /* ignore */ }
+  }, [logPanelOpen])
 
   /** 去重后把指令插到历史最前，并写入 localStorage */
   const rememberCommand = useCallback((cmdText) => {
@@ -242,7 +286,7 @@ function App() {
           imagePollDeadlineRef.current = null
           return
         }
-        const r = await fetch(apiUrl(`/api/image-status/${taskId}`))
+        const r = await apiFetch(`/api/image-status/${taskId}`)
         const d = await r.json()
         if (d.status === 'succeeded' && d.imageUrl) {
           clearInterval(pollTimerRef.current)
@@ -277,7 +321,7 @@ function App() {
 
   const refreshUserApps = useCallback(async () => {
     try {
-      const r = await fetch(apiUrl('/api/user-apps'))
+      const r = await apiFetch('/api/user-apps')
       const d = await r.json()
       if (d.code === 200 && Array.isArray(d.apps)) setUserAppList(d.apps)
     } catch { /* ignore */ }
@@ -285,13 +329,17 @@ function App() {
 
   useEffect(() => {
     refreshUserApps()
-    fetch(apiUrl('/api/capabilities'))
+    apiFetch('/api/capabilities')
       .then((res) => res.json())
       .then((d) => {
         if (typeof d.userExePick === 'boolean') setUserExePickSupported(d.userExePick)
       })
       .catch(() => {})
   }, [refreshUserApps])
+
+  useEffect(() => {
+    if (shouldShowGuide) setShowGuide(true)
+  }, [shouldShowGuide])
 
   /**
    * 核心：POST /api/send-task，按返回 type 切换界面与副作用。
@@ -306,10 +354,10 @@ function App() {
 
     try {
       const location = await fetchClientLocation(7000)
-      const payload = { task: cmdText, history: chatHistory }
+      const payload = { task: cmdText, history: chatHistory, sessionId }
       if (location) payload.location = location
 
-      const res = await fetch(apiUrl('/api/send-task'), {
+      const res = await apiFetch('/api/send-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -345,7 +393,6 @@ function App() {
         setWeatherData(data.extraData)
         setContentType('weather')
       } else if (data.type === 'chart' && data.chartData) {
-        // 后端已把文本数据解析成 chartData，前端只负责切换到图表组件并渲染。
         setChartData(data.chartData)
         setContentType('chart')
       } else if (data.type === 'chat' || data.type === 'app') {
@@ -353,7 +400,6 @@ function App() {
         if (data.type === 'chat') updateChatHistory(cmdText, data.reply ?? '')
         setContentType('chat')
       } else if (data.type === 'image_pending' && data.taskId) {
-        // 异步图片：立即显示生成中状态，后台轮询
         setImagePrompt(data.prompt || 'AI生成图片')
         setImageUrl('')
         startImagePolling(data.taskId)
@@ -404,16 +450,19 @@ function App() {
         setContentType('default')
       }
 
-      // 指令处理完后，将视口跳转到反馈区标题处
       setTimeout(() => {
         feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
 
     } catch (err) {
-      addLog('❌ 错误：请启动Python后端服务！')
+      const detail = err?.message || String(err)
+      const hint = /fetch|network|Failed to fetch/i.test(detail)
+        ? '请确认 Python 后端已在 127.0.0.1:5001 运行'
+        : detail
+      addLog(`❌ 请求失败：${hint}`)
       console.error(err)
       setMode('normal')
-      setModeLabel('后端未连接')
+      setModeLabel(/fetch|network|Failed to fetch/i.test(detail) ? '后端未连接' : '请求异常')
       setWorldState(null)
       setQuickActions([])
       setWorkflowSteps([])
@@ -421,7 +470,7 @@ function App() {
     }
     setTask('')
     setIsSending(false)
-  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory])
+  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory, sessionId])
 
   /** DefaultPanel 快捷示例：摄像头肤质入口滚动定位，不走后端 */
   const handleDefaultExample = useCallback((example) => {
@@ -464,7 +513,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('task', task || '生成柱状图')
-      const res = await fetch(apiUrl('/api/generate-chart'), {
+      const res = await apiFetch('/api/generate-chart', {
         method: 'POST',
         body: formData,
       })
@@ -500,7 +549,7 @@ function App() {
     setPickBrowseBusy(true)
     addLog('📂 请在弹出的系统窗口中选择要加入白名单的 .exe 程序…')
     try {
-      const res = await fetch(apiUrl('/api/user-apps/pick'), { method: 'POST' })
+      const res = await apiFetch('/api/user-apps/pick', { method: 'POST' })
       const data = await res.json()
       if (data.code === 501) {
         addLog(`⚠️ ${data.message || '当前环境不支持浏览添加'}`)
@@ -528,7 +577,7 @@ function App() {
       return
     }
     try {
-      const res = await fetch(apiUrl('/api/user-apps'), {
+      const res = await apiFetch('/api/user-apps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, path: addAppDraft.path }),
@@ -550,7 +599,7 @@ function App() {
 
   const handleRemoveUserApp = useCallback(async (name) => {
     try {
-      const res = await fetch(`${apiUrl('/api/user-apps')}?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/user-apps?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.code === 200) {
         addLog(`✅ ${data.message}`)
@@ -582,7 +631,7 @@ function App() {
       formData.append('image', file)
       formData.append('question', question)
       formData.append('kind', kind)
-      const res = await fetch(apiUrl('/api/analyze-image'), {
+      const res = await apiFetch('/api/analyze-image', {
         method: 'POST',
         body: formData,
       })
@@ -615,26 +664,59 @@ function App() {
     }
   }, [addLog, isAnalyzingImage])
 
+  const stageTitle = STAGE_TITLES[contentType] || STAGE_TITLES.default
+
   return (
-    <div className="app">
+    <div className="app-shell">
+      <LoginParticleBg className="app-shell-bg" ambient />
+      <div className="app">
       <SelectionToolbar />
       <XiaowenBot />
-      {/* 顶栏：产品名 */}
-      <header className="app-header">
-        <div className="app-logo">小文</div>
-        <p className="app-subtitle">智能语音助手</p>
+      <header className="app-topbar">
+        <div className="app-brand">
+          <div className="app-logo-icon" aria-hidden>W</div>
+          <div className="app-brand-text">
+            <span className="app-logo">小文</span>
+            <span className="app-subtitle">智能语音助手</span>
+          </div>
+        </div>
+        <ModeBar
+          variant="top"
+          mode={mode}
+          modeLabel={modeLabel}
+          worldState={worldState}
+          quickActions={quickActions}
+          onQuickAction={autoSendTask}
+        />
+        <div className="app-topbar-actions">
+          <button
+            className="app-settings-btn"
+            onClick={() => setShowSettings(true)}
+            title="偏好设置"
+            aria-label="偏好设置"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          <button
+            className="app-logout-btn"
+            onClick={() => { logout(); navigate('/login', { replace: true }) }}
+            title="退出登录"
+            aria-label="退出登录"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
-      <div className="app-body">
-        {/* 左栏：模式条 + 输入 + 按 contentType 切换的反馈栈 */}
-        <aside className="panel panel--left">
-          <ModeBar
-            mode={mode}
-            modeLabel={modeLabel}
-            worldState={worldState}
-            quickActions={quickActions}
-            onQuickAction={autoSendTask}
-          />
+      <div className="app-workspace">
+        <header className="composer">
           <CommandInput
             task={task}
             setTask={setTask}
@@ -648,11 +730,28 @@ function App() {
             commandHistory={commandHistory}
             onHistoryClick={autoSendTask}
           />
-          <h3 className="panel-title" ref={feedbackRef}>✨ 智慧助手空间</h3>
-          <div className={`panel-content panel-content--${contentType}`}>
+        </header>
+
+        <section className="stage" aria-label={stageTitle}>
+          <div className="stage-head">
+            <h2 className="stage-title" ref={feedbackRef}>
+              <span className="stage-title-icon" aria-hidden>✨</span>
+              {stageTitle}
+            </h2>
+            <span className="stage-badge">{modeLabel}</span>
+          </div>
+          <div className={`stage-body panel-content panel-content--${contentType}`}>
             <div className="feedback-stack">
-              {/* 闲聊、网页链接摘要、应用打开结果等 */}
-              {contentType === 'chat' && <ChatPanel reply={chatReply} />}
+              {contentType === 'chat' && (
+                <ChatPanel
+                  reply={chatReply}
+                  history={chatHistory}
+                  onClearHistory={() => {
+                    clearChatHistory()
+                    setChatReply('')
+                  }}
+                />
+              )}
               {contentType === 'chart' && <ChartPanel data={chartData} onUpload={generateChartFromFile} disabled={isGeneratingChart} />}
               {contentType === 'weather' && <WeatherCard data={weatherData} />}
               {contentType === 'music' && music.previewUrl && <MusicPlayer music={music} />}
@@ -684,12 +783,28 @@ function App() {
               <WorkflowPanel steps={workflowSteps} />
             </div>
           </div>
-        </aside>
+        </section>
 
-        {/* right — 运行日志 */}
-        <main className="panel panel--right">
-          <LogPanel logs={logList} onClear={clearLogList} />
-        </main>
+        <ActivityDock
+          logs={logList}
+          open={logPanelOpen}
+          onToggle={toggleLogPanel}
+          onClear={clearLogList}
+          dockTab={rightTab}
+          onDockTabChange={setRightTab}
+          historyPanel={<ChatHistoryPanel />}
+        />
+      </div>
+      {showGuide && (
+        <PreferencesGuide
+          onSetup={() => {
+            setShowGuide(false)
+            setShowSettings(true)
+          }}
+          onDismiss={() => setShowGuide(false)}
+        />
+      )}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
       </div>
     </div>
   )

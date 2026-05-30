@@ -1,10 +1,10 @@
 /**
- * ChatPanel.jsx — 对话回复面板
- *
- * - 「朗读回复」：POST /api/tts（后端讯飞 WebSocket TTS，默认 WAV）
+ * ChatPanel.jsx — 对话面板：历史记录 + 最新回复朗读/复制
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
+import ChatExportMenu from './ChatExportMenu'
+import ChatHistoryView from './ChatHistoryView'
 import './ChatPanel.css'
 
 const VOICE_LABEL = {
@@ -12,29 +12,13 @@ const VOICE_LABEL = {
   female_jiuxu: '女声 · 许久 / 聆玉昭',
 }
 
-/** split 带捕获组时，偶数位片段为 URL；勿对 /g 正则反复 .test()，否则会因 lastIndex 漏匹配。 */
-function renderTextWithLinks(text) {
-  const urlRegex = /(https?:\/\/[^\s，。！？；、]+)/g
-  const parts = text.split(urlRegex)
-  return parts.map((part, index) => {
-    if (/^https?:\/\//.test(part)) {
-      return (
-        <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
-          {part}
-        </a>
-      )
-    }
-    return part
-  })
-}
+const MAX_ROUNDS_HINT = 6
 
-export default function ChatPanel({ reply }) {
+export default function ChatPanel({ reply, history = [], onClearHistory }) {
   const [voiceType, setVoiceType] = useState(() => getTtsVoiceFromStorage())
-
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [copyDone, setCopyDone] = useState(false)
   const [ttsError, setTtsError] = useState('')
-  const bodyRef = useRef(null)
   const copyTimerRef = useRef(null)
   const ttsAudioRef = useRef(null)
   const ttsObjectUrlRef = useRef(null)
@@ -63,15 +47,16 @@ export default function ChatPanel({ reply }) {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
   }, [])
 
+  const trimmed = String(reply || '').trim()
+
   const copyFullReply = useCallback(async () => {
-    const text = String(reply || '').trim()
-    if (!text) return
+    if (!trimmed) return
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text)
+        await navigator.clipboard.writeText(trimmed)
       } else {
         const ta = document.createElement('textarea')
-        ta.value = text
+        ta.value = trimmed
         ta.setAttribute('readonly', '')
         ta.style.position = 'fixed'
         ta.style.left = '-9999px'
@@ -86,91 +71,103 @@ export default function ChatPanel({ reply }) {
     } catch {
       setCopyDone(false)
     }
-  }, [reply])
+  }, [trimmed])
 
   const speakReply = useCallback(async () => {
-    const text = String(reply || '').trim()
-    if (!text) return
-
+    if (!trimmed) return
     stopSpeaking()
     setTtsError('')
     setIsSpeaking(true)
-
     try {
-      await playXfyunTts(text, ttsAudioRef, ttsObjectUrlRef, { voice: voiceType })
+      await playXfyunTts(trimmed, ttsAudioRef, ttsObjectUrlRef, { voice: voiceType })
     } catch (e) {
       console.error(e)
       setTtsError(e?.message || '朗读失败：请确认后端已启动且已配置讯飞密钥')
     } finally {
       setIsSpeaking(false)
     }
-  }, [reply, voiceType, stopSpeaking])
+  }, [trimmed, voiceType, stopSpeaking])
 
-  const trimmed = String(reply || '').trim()
+  const hasHistory = history.length > 0 || trimmed
 
   return (
     <div className="cp">
       <div className="cp-head">
-        <span className="cp-head-icon">💬</span>
-        <span>小文回复</span>
-      </div>
-      <div className={`cp-body ${isSpeaking ? 'cp-body--speaking' : ''}`} ref={bodyRef}>
-        {trimmed ? (
-          <span className="cp-segment">{renderTextWithLinks(reply)}</span>
-        ) : (
-          '（暂无内容）'
-        )}
+        <div className="cp-head-main">
+          <span className="cp-head-icon">💬</span>
+          <span>对话记录</span>
+        </div>
+        <div className="cp-head-actions">
+          {typeof onClearHistory === 'function' && hasHistory && (
+            <button
+              type="button"
+              className="cp-clear-btn"
+              onClick={onClearHistory}
+              title="清空本地对话记录"
+            >
+              清空
+            </button>
+          )}
+          <ChatExportMenu history={history} />
+        </div>
       </div>
 
-      <div className="cp-copy-row">
-        <button
-          type="button"
-          className="cp-copy-btn"
-          onClick={copyFullReply}
-          disabled={!trimmed}
-          title="复制当前小文回复的完整纯文本"
-        >
-          {copyDone ? '已复制' : '复制全文'}
-        </button>
-      </div>
+      <ChatHistoryView
+        history={history}
+        reply={reply}
+        maxRoundsHint={MAX_ROUNDS_HINT}
+      />
 
-      <div className="cp-tts">
-        <div className="cp-tts-label">
-          <span>🔊 朗读回复</span>
-          <small className="cp-tts-engine">讯飞 TTS · {VOICE_LABEL[voiceType] || VOICE_LABEL.female}</small>
+      <div className={`cp-latest ${isSpeaking ? 'cp-latest--speaking' : ''}`}>
+        <div className="cp-latest-head">
+          <span>最新回复</span>
+          <div className="cp-latest-actions">
+            <button
+              type="button"
+              className="cp-copy-btn"
+              onClick={copyFullReply}
+              disabled={!trimmed}
+              title="复制小文最新回复"
+            >
+              {copyDone ? '已复制' : '复制'}
+            </button>
+          </div>
         </div>
-        <div className="cp-tts-actions">
-          <select
-            value={voiceType}
-            onChange={(e) => setVoiceType(e.target.value)}
-            className="cp-tts-select"
-            disabled={isSpeaking}
-            title="后端若配置超拟人 wss，下列映射为 x5 发音人；否则为在线合成经典音库"
-          >
-            <option value="female">女声 · 默认</option>
-            <option value="female_jiuxu">女声 · 许久 / 玉昭</option>
-          </select>
-          <button
-            type="button"
-            className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
-            onClick={speakReply}
-            disabled={!trimmed}
-          >
-            {isSpeaking ? '朗读中…' : '开始朗读'}
-          </button>
-          <button
-            type="button"
-            className="cp-tts-btn"
-            onClick={stopSpeaking}
-            disabled={!isSpeaking}
-          >
-            停止
-          </button>
+
+        <div className="cp-tts">
+          <div className="cp-tts-label">
+            <span>🔊 朗读最新回复</span>
+            <small className="cp-tts-engine">讯飞 TTS · {VOICE_LABEL[voiceType] || VOICE_LABEL.female}</small>
+          </div>
+          <div className="cp-tts-actions">
+            <select
+              value={voiceType}
+              onChange={(e) => setVoiceType(e.target.value)}
+              className="cp-tts-select"
+              disabled={isSpeaking}
+            >
+              <option value="female">女声 · 默认</option>
+              <option value="female_jiuxu">女声 · 许久 / 玉昭</option>
+            </select>
+            <button
+              type="button"
+              className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
+              onClick={speakReply}
+              disabled={!trimmed}
+            >
+              {isSpeaking ? '朗读中…' : '开始朗读'}
+            </button>
+            <button
+              type="button"
+              className="cp-tts-btn"
+              onClick={stopSpeaking}
+              disabled={!isSpeaking}
+            >
+              停止
+            </button>
+          </div>
+          {ttsError && <p className="cp-tts-tip cp-tts-tip--error">{ttsError}</p>}
         </div>
-        {ttsError && <p className="cp-tts-tip cp-tts-tip--error">{ttsError}</p>}
-        <p className="cp-tts-tip">
-          超拟人需在控制台「发音人授权管理」领取发音人；11200 表示当前 vcn 未授权。也可在请求里直接传控制台给出的 vcn。
-        </p>
       </div>
     </div>
   )

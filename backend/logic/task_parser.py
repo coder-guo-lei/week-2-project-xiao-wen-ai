@@ -80,6 +80,7 @@ from logic.intent_classifier import (
     intent_workflow_label,
 )
 from logic.user_apps import load_user_apps, merge_launchers
+from routes.preferences import build_personalized_system_prompt, load_user_preferences
 
 logger = logging.getLogger(__name__)
 
@@ -1678,7 +1679,7 @@ def remember_chat_turn(user_text, assistant_text):
     get_dialogue_manager().record_turn(user_text, assistant_text)
 
 
-def ai_chat(query, history=None, location_hint=None):
+def ai_chat(query, history=None, location_hint=None, user_id=None):
     dm = get_dialogue_manager()
     system_prompt = (
         "你是智能语音助手「小文」。用自然、口语化的中文回答，适合朗读；"
@@ -1691,6 +1692,14 @@ def ai_chat(query, history=None, location_hint=None):
         system_prompt += "\n\n" + state_hint
     if location_hint:
         system_prompt += "\n\n" + str(location_hint).strip()
+    if user_id:
+        try:
+            prefs = load_user_preferences(int(user_id))
+            personalize = build_personalized_system_prompt(prefs)
+            if personalize:
+                system_prompt += personalize
+        except Exception as e:
+            logger.warning("偏好注入失败(user_id=%s): %s", user_id, e)
     messages = [
         {"role": "system", "content": system_prompt},
         *dm.build_context_messages(history),
@@ -3074,8 +3083,12 @@ def with_intent_workflow(result, intent_result, *items):
     return with_workflow(result, ("识别意图", intent_workflow_label(intent_result)), *items)
 
 
-def parse_command(task, chat_history=None, client_location=None):
-    """统一指令路由入口：告别/世界状态 → LLM 意图分类 + 规则兜底 + 缓存 → 业务分支。"""
+def parse_command(task, chat_history=None, client_location=None, user_id=None):
+    """统一指令路由入口：告别/世界状态 → LLM 意图分类 + 规则兜底 + 缓存 → 业务分支。
+
+    client_location：前端可选 { lat, lng }（WGS84），用于当地天气与附近美食等。
+    user_id：数据库用户 ID，用于注入个人偏好到 AI 对话的 system prompt 中。
+    """
     task = task.strip()
 
     if is_goodbye_intent(task):
@@ -3412,6 +3425,7 @@ def parse_command(task, chat_history=None, client_location=None):
                 task,
                 chat_history,
                 location_hint=loc_hint,
+                user_id=user_id,
             ),
             **current_mode_payload(),
         },
