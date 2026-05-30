@@ -41,7 +41,7 @@ pnpm dev
 - **LOCAL_TIMEZONE**：对话里「今天」所用 IANA 时区（默认 `Asia/Shanghai`）。  
 - **讯飞 `XFYUN_*`**：朗读接口 `/api/tts`；填写 **`XFYUN_SUPER_TTS_WS_URL`** 时使用「超拟人」协议，否则使用「在线语音合成」v2；密钥勿提交 Git。  
 
-完整列表见 `backend/.env.example`。
+完整列表见 `backend/.env.example`；**组员上手配置（申请地址、填写示例、功能对照）** 见 [docs/API密钥与环境配置指南.md](docs/API密钥与环境配置指南.md)。
 
 ## 交付版行为说明（与时间相关）
 

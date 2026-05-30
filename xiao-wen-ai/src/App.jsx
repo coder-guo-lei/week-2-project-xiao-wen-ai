@@ -11,10 +11,14 @@
  * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、右侧 LogPanel、吉祥物 XiaowenBot
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
+import { usePreferences } from './contexts/PreferencesContext'
 import './App.css'
 
 import CommandInput from './components/CommandInput'
 import LogPanel from './components/LogPanel'
+import ChatHistoryPanel from './components/ChatHistoryPanel'
 import MusicPlayer from './components/MusicPlayer'
 import WeatherCard from './components/WeatherCard'
 import ChatPanel from './components/ChatPanel'
@@ -27,10 +31,12 @@ import ImageAnalyzer from './components/ImageAnalyzer'
 import FaceWellnessCamera from './components/FaceWellnessCamera'
 import ChartPanel from './components/ChartPanel'
 import XiaowenBot from './components/XiaowenBot'
+import SettingsPanel from './components/SettingsPanel'
+import PreferencesGuide from './components/PreferencesGuide'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
-import { apiUrl } from './apiBase'
+import { apiFetch, apiUrl } from './apiBase'
 
 // ---------- 与 localStorage 同步的键名、列表长度上限 ----------
 const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
@@ -98,6 +104,9 @@ function fetchClientLocation(timeoutMs = 6500) {
 }
 
 function App() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const { shouldShowGuide } = usePreferences()
   // ---------- 输入与日志 ----------
   const [task, setTask] = useState('') // 与 CommandInput 受控绑定；发送成功后会清空
   const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 右侧 LogPanel 数据源
@@ -146,6 +155,16 @@ function App() {
   /** 选完 exe 待用户确认名称：{ path, suggestedName } */
   const [addAppDraft, setAddAppDraft] = useState(null)
   const [addAppNameInput, setAddAppNameInput] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [sessionId] = useState(() => {
+    try {
+      return crypto.randomUUID()
+    } catch {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+    }
+  })
+  const [rightTab, setRightTab] = useState('log') // 'log' | 'history'
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
 
@@ -242,7 +261,7 @@ function App() {
           imagePollDeadlineRef.current = null
           return
         }
-        const r = await fetch(apiUrl(`/api/image-status/${taskId}`))
+        const r = await apiFetch(`/api/image-status/${taskId}`)
         const d = await r.json()
         if (d.status === 'succeeded' && d.imageUrl) {
           clearInterval(pollTimerRef.current)
@@ -277,7 +296,7 @@ function App() {
 
   const refreshUserApps = useCallback(async () => {
     try {
-      const r = await fetch(apiUrl('/api/user-apps'))
+      const r = await apiFetch('/api/user-apps')
       const d = await r.json()
       if (d.code === 200 && Array.isArray(d.apps)) setUserAppList(d.apps)
     } catch { /* ignore */ }
@@ -285,13 +304,17 @@ function App() {
 
   useEffect(() => {
     refreshUserApps()
-    fetch(apiUrl('/api/capabilities'))
+    apiFetch('/api/capabilities')
       .then((res) => res.json())
       .then((d) => {
         if (typeof d.userExePick === 'boolean') setUserExePickSupported(d.userExePick)
       })
       .catch(() => {})
   }, [refreshUserApps])
+
+  useEffect(() => {
+    if (shouldShowGuide) setShowGuide(true)
+  }, [shouldShowGuide])
 
   /**
    * 核心：POST /api/send-task，按返回 type 切换界面与副作用。
@@ -306,10 +329,10 @@ function App() {
 
     try {
       const location = await fetchClientLocation(7000)
-      const payload = { task: cmdText, history: chatHistory }
+      const payload = { task: cmdText, history: chatHistory, sessionId }
       if (location) payload.location = location
 
-      const res = await fetch(apiUrl('/api/send-task'), {
+      const res = await apiFetch('/api/send-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -410,10 +433,14 @@ function App() {
       }, 100)
 
     } catch (err) {
-      addLog('❌ 错误：请启动Python后端服务！')
+      const detail = err?.message || String(err)
+      const hint = /fetch|network|Failed to fetch/i.test(detail)
+        ? '请确认 Python 后端已在 127.0.0.1:5001 运行'
+        : detail
+      addLog(`❌ 请求失败：${hint}`)
       console.error(err)
       setMode('normal')
-      setModeLabel('后端未连接')
+      setModeLabel(/fetch|network|Failed to fetch/i.test(detail) ? '后端未连接' : '请求异常')
       setWorldState(null)
       setQuickActions([])
       setWorkflowSteps([])
@@ -421,7 +448,7 @@ function App() {
     }
     setTask('')
     setIsSending(false)
-  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory])
+  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory, sessionId])
 
   /** DefaultPanel 快捷示例：摄像头肤质入口滚动定位，不走后端 */
   const handleDefaultExample = useCallback((example) => {
@@ -464,7 +491,7 @@ function App() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('task', task || '生成柱状图')
-      const res = await fetch(apiUrl('/api/generate-chart'), {
+      const res = await apiFetch('/api/generate-chart', {
         method: 'POST',
         body: formData,
       })
@@ -500,7 +527,7 @@ function App() {
     setPickBrowseBusy(true)
     addLog('📂 请在弹出的系统窗口中选择要加入白名单的 .exe 程序…')
     try {
-      const res = await fetch(apiUrl('/api/user-apps/pick'), { method: 'POST' })
+      const res = await apiFetch('/api/user-apps/pick', { method: 'POST' })
       const data = await res.json()
       if (data.code === 501) {
         addLog(`⚠️ ${data.message || '当前环境不支持浏览添加'}`)
@@ -528,7 +555,7 @@ function App() {
       return
     }
     try {
-      const res = await fetch(apiUrl('/api/user-apps'), {
+      const res = await apiFetch('/api/user-apps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, path: addAppDraft.path }),
@@ -550,7 +577,7 @@ function App() {
 
   const handleRemoveUserApp = useCallback(async (name) => {
     try {
-      const res = await fetch(`${apiUrl('/api/user-apps')}?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/user-apps?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.code === 200) {
         addLog(`✅ ${data.message}`)
@@ -582,7 +609,7 @@ function App() {
       formData.append('image', file)
       formData.append('question', question)
       formData.append('kind', kind)
-      const res = await fetch(apiUrl('/api/analyze-image'), {
+      const res = await apiFetch('/api/analyze-image', {
         method: 'POST',
         body: formData,
       })
@@ -623,6 +650,29 @@ function App() {
       <header className="app-header">
         <div className="app-logo">小文</div>
         <p className="app-subtitle">智能语音助手</p>
+        <button
+          className="app-settings-btn"
+          onClick={() => setShowSettings(true)}
+          title="偏好设置"
+          aria-label="偏好设置"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+        <button
+          className="app-logout-btn"
+          onClick={() => { logout(); navigate('/login', { replace: true }) }}
+          title="退出登录"
+          aria-label="退出登录"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
       </header>
 
       <div className="app-body">
@@ -686,11 +736,39 @@ function App() {
           </div>
         </aside>
 
-        {/* right — 运行日志 */}
+        {/* right — 运行日志 / 对话历史 */}
         <main className="panel panel--right">
-          <LogPanel logs={logList} onClear={clearLogList} />
+          <div className="right-tabs">
+            <button
+              className={`right-tab ${rightTab === 'log' ? 'active' : ''}`}
+              onClick={() => setRightTab('log')}
+            >
+              运行日志
+            </button>
+            <button
+              className={`right-tab ${rightTab === 'history' ? 'active' : ''}`}
+              onClick={() => setRightTab('history')}
+            >
+              对话历史
+            </button>
+          </div>
+          {rightTab === 'log' ? (
+            <LogPanel logs={logList} onClear={clearLogList} />
+          ) : (
+            <ChatHistoryPanel />
+          )}
         </main>
       </div>
+      {showGuide && (
+        <PreferencesGuide
+          onSetup={() => {
+            setShowGuide(false)
+            setShowSettings(true)
+          }}
+          onDismiss={() => setShowGuide(false)}
+        />
+      )}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </div>
   )
 }
