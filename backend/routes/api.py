@@ -23,6 +23,7 @@ from config import (
     XFYUN_TTS_VOLUME,
     xfyun_vcn_ok,
 )
+from logic.dialogue_manager import get_dialogue_manager
 from logic.task_parser import (
     analyze_uploaded_image,
     build_chart_payload,
@@ -42,6 +43,7 @@ from logic.user_apps import (
     remove_user_app,
     user_apps_public_list,
 )
+import session
 from services.xfyun_iat import transcribe_wav_bytes
 from services.xfyun_tts import (
     async_xfyun_tts_audio,
@@ -267,7 +269,8 @@ def send_task():
     try:
         data = request.get_json(silent=True) or {}
         task = (data.get("task") or "").strip()
-        incoming_history = normalize_chat_history(data.get("history"))
+        dm = get_dialogue_manager()
+        incoming_history = dm.sync_frontend_history(data.get("history"))
         if not task:
             return jsonify({"code": 400, "reply": "指令不能为空"})
 
@@ -275,7 +278,11 @@ def send_task():
         raw_loc = data.get("location")
         client_location = raw_loc if isinstance(raw_loc, dict) else None
         res = parse_command(task, incoming_history, client_location)
-        if res.get("type") == "chat" and not res.get("resetUI"):
+
+        dm.transition(intent=session.LAST_INTENT, response_type=res.get("type"))
+        if res.get("type") == "goodbye":
+            dm.reset()
+        elif res.get("type") == "chat" and not res.get("resetUI"):
             remember_chat_turn(task, res.get("msg", ""))
 
         response = {

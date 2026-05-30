@@ -61,6 +61,24 @@ from config import (
     resolve_netease_cloud_exe,
 )
 import session
+from logic.dialogue_manager import get_dialogue_manager, normalize_messages
+from logic.intent_classifier import (
+    INTENT_APP_LAUNCH,
+    INTENT_APP_LIST,
+    INTENT_CHART,
+    INTENT_IMAGE_GENERATE,
+    INTENT_IMAGE_LOOKUP,
+    INTENT_IMAGE_UNDERSTANDING,
+    INTENT_KNOWLEDGE,
+    INTENT_LOCAL_FOOD,
+    INTENT_MUSIC,
+    INTENT_MUSIC_NAV,
+    INTENT_WEATHER,
+    INTENT_WEB_OPEN,
+    INTENT_WORLD_CREATE,
+    classify_intent,
+    intent_workflow_label,
+)
 from logic.user_apps import load_user_apps, merge_launchers
 
 logger = logging.getLogger(__name__)
@@ -77,7 +95,7 @@ logger = logging.getLogger(__name__)
 #   · 「5. 本地应用启动模块」：白名单、微信/QQ 路径解析、快捷方式
 #   · 「6. 模拟世界对话模块」：文字 RPG 状态在 session
 #   · 「6.5 数据图表生成模块」：CSV/从指令抽数
-#   · 「7. 指令解析核心」：parse_command() — 所有用户指令的统一路由，分支顺序影响匹配结果
+#   · 「7. 指令解析核心」：parse_command() — LLM 意图分类 + 规则兜底 + 缓存，再分发到各业务分支
 #
 # HTTP 与前端字段拼装见 routes/api.py；环境变量见 config.py。
 # =============================================================================
@@ -1581,19 +1599,7 @@ def analyze_uploaded_image(file_storage, question="", kind=""):
 
 def normalize_chat_history(history):
     """清洗前端传入的对话历史，只保留模型需要的 user / assistant 文本。"""
-    if not isinstance(history, list):
-        return []
-
-    normalized = []
-    for item in history[-MAX_CHAT_HISTORY_MESSAGES:]:
-        if not isinstance(item, dict):
-            continue
-        role = item.get("role")
-        content = str(item.get("content") or "").strip()
-        if role not in {"user", "assistant"} or not content:
-            continue
-        normalized.append({"role": role, "content": content[:MAX_CHAT_MESSAGE_CHARS]})
-    return normalized
+    return normalize_messages(history)[-MAX_CHAT_HISTORY_MESSAGES:]
 
 
 def lunar_year_anchor_facts_for_llm(lunar_now_naive):
@@ -1669,29 +1675,25 @@ def current_datetime_context_for_llm():
 
 def remember_chat_turn(user_text, assistant_text):
     """服务端保存短期上下文，便于刷新前端后仍能追问上一轮内容。"""
-    user_text = str(user_text or "").strip()
-    assistant_text = str(assistant_text or "").strip()
-    if not user_text or not assistant_text:
-        return
-    session.CHAT_HISTORY.extend([
-        {"role": "user", "content": user_text[:MAX_CHAT_MESSAGE_CHARS]},
-        {"role": "assistant", "content": assistant_text[:MAX_CHAT_MESSAGE_CHARS]},
-    ])
-    session.CHAT_HISTORY = session.CHAT_HISTORY[-MAX_CHAT_HISTORY_MESSAGES:]
+    get_dialogue_manager().record_turn(user_text, assistant_text)
 
 
 def ai_chat(query, history=None, location_hint=None):
+    dm = get_dialogue_manager()
     system_prompt = (
         "你是智能语音助手「小文」。用自然、口语化的中文回答，适合朗读；"
         "回答尽量控制在几句以内，除非用户明确要求长文（如详细讲故事）。"
         "用户可能会问各地美食、讲笑话、讲故事、闲聊等，请友好作答。\n\n"
         + current_datetime_context_for_llm()
     )
+    state_hint = dm.state_hint_for_system()
+    if state_hint:
+        system_prompt += "\n\n" + state_hint
     if location_hint:
         system_prompt += "\n\n" + str(location_hint).strip()
     messages = [
         {"role": "system", "content": system_prompt},
-        *normalize_chat_history(history),
+        *dm.build_context_messages(history),
         {"role": "user", "content": query},
     ]
 
@@ -2101,11 +2103,8 @@ def extract_entity_from_assistant_reply(content):
 
 
 def merge_chat_history_for_lookup(chat_history):
-    """优先用前端传来的 history，否则用服务端内存里的上一轮对话。"""
-    norm = normalize_chat_history(chat_history)
-    if norm:
-        return norm
-    return list(session.CHAT_HISTORY)
+    """优先用前端传来的 history，否则用服务端 DialogueManager 存储。"""
+    return get_dialogue_manager().resolve_history(chat_history)
 
 
 def _weather_resolve_from_gps(client_location, task: str) -> tuple[str, bool, str | None, dict | None] | None:
@@ -3070,22 +3069,18 @@ def is_goodbye_intent(task):
     ])
 
 
-def parse_command(task, chat_history=None, client_location=None):
-    """统一指令路由入口。
+def with_intent_workflow(result, intent_result, *items):
+    """在 workflow 首部插入意图识别步骤。"""
+    return with_workflow(result, ("识别意图", intent_workflow_label(intent_result)), *items)
 
-    处理顺序很重要：先匹配的分支先执行。概括顺序为：
-    告别 → 若已在模拟世界则只处理世界内/退出 → 可启动应用列表、知识库、网页图搜、
-    图片理解、图表 → 天气 → 音乐切歌/点歌与跟唱 → 附近美食（需有效定位）→
-    创建模拟世界 → 文生图 → 抖音网页特例 → 本机应用白名单 →「打开」泛化（含百度搜索）
-    → 默认大模型对话。中间还有若干 is_* 细分，以本函数 if 链为准。
-    client_location：前端可选 { lat, lng }（WGS84），用于当地天气与附近美食等。
-    各分支可附带 mode、resetUI、workflow 等，经 routes 带给前端。
-    """
+
+def parse_command(task, chat_history=None, client_location=None):
+    """统一指令路由入口：告别/世界状态 → LLM 意图分类 + 规则兜底 + 缓存 → 业务分支。"""
     task = task.strip()
 
     if is_goodbye_intent(task):
+        get_dialogue_manager().reset()
         session.WORLD_STATE = None
-        session.CHAT_HISTORY = []
         return {
             "type": "goodbye",
             "msg": "再见，我会在这里等你。需要我的时候，随时叫我小文。",
@@ -3100,28 +3095,41 @@ def parse_command(task, chat_history=None, client_location=None):
             return {"type": "chat", "msg": "已退出模拟世界，回到小文普通助手模式。你可以继续聊天、查天气、播放音乐或生成图片。", **current_mode_payload()}
         return {"type": "chat", "msg": apply_world_action(task), **current_mode_payload()}
 
-    if is_app_list_query(task):
-        return with_workflow(
+    lang_follow = bool(chat_history) and is_music_language_followup(task, chat_history)
+    follow_query = resolve_music_followup_search_query(task, chat_history) if lang_follow else None
+    dm = get_dialogue_manager()
+    intent_ctx = {
+        "has_history": bool(dm.resolve_history(chat_history)),
+        "has_location": isinstance(client_location, dict),
+        "music_followup": bool(follow_query),
+    }
+    intent_result = classify_intent(task, intent_ctx)
+    intent = intent_result.intent
+    session.LAST_INTENT = intent
+
+    if intent == INTENT_APP_LIST:
+        return with_intent_workflow(
             {"type": "app", "msg": supported_app_message(), **current_mode_payload()},
+            intent_result,
             ("接收指令", task),
-            ("识别意图", "用户询问可启动的本机应用"),
             ("返回结果", "展示白名单应用列表"),
         )
 
-    if is_knowledge_intent(task):
+    if intent == INTENT_KNOWLEDGE:
         answer, refs = ai_answer_with_knowledge(task)
         sources = "、".join(f"{r['source']}#{r['index']}" for r in refs)
-        return with_workflow(
+        return with_intent_workflow(
             {"type": "chat", "msg": answer, "knowledgeSources": sources, **current_mode_payload({"mode": "knowledge", "modeLabel": "知识库问答"})},
+            intent_result,
             ("接收问题", task),
             ("检索知识库", sources or "项目 README / 汇总文档"),
             ("生成回答", "基于检索片段组织答案"),
         )
 
-    if is_image_lookup_intent(task):
+    if intent == INTENT_IMAGE_LOOKUP:
         query = extract_image_search_query(task, chat_history)
         if not query:
-            return with_workflow(
+            return with_intent_workflow(
                 {
                     "type": "chat",
                     "msg": (
@@ -3131,59 +3139,62 @@ def parse_command(task, chat_history=None, client_location=None):
                     ),
                     **current_mode_payload({"mode": "web", "modeLabel": "图片搜索"}),
                 },
+                intent_result,
                 ("接收指令", task),
                 ("解析搜索词", "未从对话中识别具体名称"),
                 ("返回提示", "引导用户补充关键词"),
             )
         encoded = urllib.parse.quote(query)
         image_search_url = f"https://image.baidu.com/search/index?tn=baiduimage&word={encoded}"
-        return with_workflow(
+        return with_intent_workflow(
             {
                 "type": "web",
                 "msg": f"已为你准备「{query}」的图片搜索，点击下方链接在浏览器里浏览实物图（结果来自搜索引擎）。",
                 "previewUrl": image_search_url,
                 **current_mode_payload({"mode": "web", "modeLabel": "图片搜索"}),
             },
+            intent_result,
             ("接收指令", task),
             ("提取关键词", query),
             ("生成链接", "百度图片搜索"),
             ("返回结果", "前端展示可点击链接"),
         )
 
-    if is_image_understanding_intent(task):
+    if intent == INTENT_IMAGE_UNDERSTANDING:
         answer, image_url = ai_understand_image(task)
-        return with_workflow(
+        return with_intent_workflow(
             {"type": "chat", "msg": answer, "imageUnderstandingUrl": image_url, **current_mode_payload({"mode": "vision", "modeLabel": "图片理解"})},
+            intent_result,
             ("接收图片", image_url or "未提供图片链接"),
             ("调用视觉模型", "识别图片内容并生成描述"),
             ("返回结果", "展示图片理解结论"),
         )
 
-    if is_chart_intent(task):
-        # 数据可视化入口：用户输入“生成折线图/柱状图 + 数据”时，在后端先解析数据，
-        # 再返回 chartData 给前端 ChartPanel；无具体数字时可自动生成模拟数据。
+    if intent == INTENT_CHART:
         try:
             points, data_source = resolve_chart_points_from_task(task)
             chart_payload = build_chart_payload(task, points, data_source)
             parse_detail = "自动生成演示数据" if data_source.startswith("模拟") else "从文本中提取标签和值"
             ct = (chart_payload.get("chartData") or {}).get("chartType") or detect_chart_type(task)
             chart_cn = "折线图" if ct == "line" else "柱状图"
-            return with_workflow(
+            return with_intent_workflow(
                 chart_payload,
+                intent_result,
                 ("接收图表指令", task),
                 ("解析数据", parse_detail),
                 ("选择图表", f"依指令关键字匹配为「{chart_cn}」"),
                 ("生成图表", "前端 SVG 可视化渲染"),
             )
         except ValueError as e:
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "chat", "msg": str(e), **current_mode_payload({"mode": "chart", "modeLabel": "数据可视化"})},
+                intent_result,
                 ("接收图表指令", task),
                 ("解析数据", "未识别到足够的标签和值"),
                 ("返回提示", "引导用户输入数据或上传文件"),
             )
 
-    if "天气" in task and not task_should_skip_weather_branch(task):
+    if intent == INTENT_WEATHER and "天气" in task and not task_should_skip_weather_branch(task):
         city, city_from_ctx, loc_adcode, loc_geo = resolve_weather_city(task, chat_history, client_location)
         data = get_weather_info(city, adcode=loc_adcode, location_detail=loc_geo)
         if loc_adcode:
@@ -3219,33 +3230,32 @@ def parse_command(task, chat_history=None, client_location=None):
         if is_weather_travel_intent(task):
             wf.append(("旅游日程建议", "对话模型润色或模板行程"))
         wf.append(("展示结果", "实况摘要与建议"))
-        return with_workflow({"type": "weather", "msg": msg, "extraData": data, **current_mode_payload()}, *wf)
+        return with_intent_workflow({"type": "weather", "msg": msg, "extraData": data, **current_mode_payload()}, intent_result, *wf)
 
-    nav = parse_music_navigation(task)
-    if nav:
-        tip = "已切换到下一首（使用你播放器里的播放记录）。" if nav == "next" else "已切换到上一首（使用你播放器里的播放记录）。"
-        return with_workflow(
-            {
-                "type": "music_control",
-                "musicAction": nav,
-                "msg": tip,
-                **current_mode_payload({"mode": "music", "modeLabel": "音乐播放中"}),
-            },
-            ("接收指令", task),
-            ("切歌", "下一首" if nav == "next" else "上一首"),
-            ("前端执行", "由本地播放列表环形切换，无需重新搜索外链"),
-        )
+    if intent == INTENT_MUSIC_NAV:
+        nav = parse_music_navigation(task)
+        if nav:
+            tip = "已切换到下一首（使用你播放器里的播放记录）。" if nav == "next" else "已切换到上一首（使用你播放器里的播放记录）。"
+            return with_intent_workflow(
+                {
+                    "type": "music_control",
+                    "musicAction": nav,
+                    "msg": tip,
+                    **current_mode_payload({"mode": "music", "modeLabel": "音乐播放中"}),
+                },
+                intent_result,
+                ("接收指令", task),
+                ("切歌", "下一首" if nav == "next" else "上一首"),
+                ("前端执行", "由本地播放列表环形切换，无需重新搜索外链"),
+            )
 
-    lang_follow = bool(chat_history) and is_music_language_followup(task, chat_history)
-    follow_query = resolve_music_followup_search_query(task, chat_history) if lang_follow else None
-
-    if is_music_intent(task) or follow_query:
+    if intent == INTENT_MUSIC or follow_query:
         eff_task = task if is_music_intent(task) else "放点歌"
         music_url, song_name, music_provider, qishui_url, qishui_embed_url = search_music_url(
             eff_task, chat_history, explicit_query=follow_query
         )
         is_qishui = music_provider == "qishui"
-        return with_workflow(
+        return with_intent_workflow(
             {
                 "type": "music",
                 "msg": f"正在为你播放：{song_name}" if not is_qishui else f"正在为你打开汽水音乐：{song_name}",
@@ -3256,13 +3266,14 @@ def parse_command(task, chat_history=None, client_location=None):
                 "qishuiEmbedUrl": qishui_embed_url,
                 **current_mode_payload({"mode": "music", "modeLabel": "音乐播放中" if not is_qishui else "汽水音乐播放"}),
             },
+            intent_result,
             ("接收指令", task),
             ("提取歌曲", song_name),
             ("搜索可播放音频", "优先返回浏览器 audio 可直接播放的试听源" if not is_qishui else "用户指定汽水音乐时打开官方入口"),
             ("进入播放", "前端播放器立即加载音频并自动播放" if not is_qishui else "官方页面负责登录和播放"),
         )
 
-    if is_local_life_food_intent(task):
+    if intent == INTENT_LOCAL_FOOD:
         loc = client_location if isinstance(client_location, dict) else None
         lng = (loc or {}).get("lng") or (loc or {}).get("longitude")
         lat = (loc or {}).get("lat") or (loc or {}).get("latitude")
@@ -3271,12 +3282,13 @@ def parse_command(task, chat_history=None, client_location=None):
                 lng_f, lat_f = float(lng), float(lat)
                 if (-180 <= lng_f <= 180) and (-90 <= lat_f <= 90):
                     body = compose_nearby_food_reply(task, lng_f, lat_f)
-                    return with_workflow(
+                    return with_intent_workflow(
                         {
                             "type": "chat",
                             "msg": body,
                             **current_mode_payload({"mode": "local", "modeLabel": "附近推荐"}),
                         },
+                        intent_result,
                         ("接收指令", task),
                         ("定位与逆地理", "浏览器经纬度 → 高德 GCJ02 / regeo"),
                         ("周边搜索", "餐饮服务类 POI"),
@@ -3284,7 +3296,7 @@ def parse_command(task, chat_history=None, client_location=None):
                     )
             except (TypeError, ValueError):
                 pass
-        return with_workflow(
+        return with_intent_workflow(
             {
                 "type": "chat",
                 "msg": (
@@ -3293,104 +3305,117 @@ def parse_command(task, chat_history=None, client_location=None):
                 ),
                 **current_mode_payload({"mode": "local", "modeLabel": "附近推荐"}),
             },
+            intent_result,
             ("接收指令", task),
             ("缺少定位", "未收到经纬度或坐标无效"),
             ("返回提示", "引导开启定位或补充地名"),
         )
 
-    if is_world_create_intent(task):
-        return with_workflow(
+    if intent == INTENT_WORLD_CREATE:
+        return with_intent_workflow(
             {"type": "chat", "msg": apply_world_action(task), **current_mode_payload()},
+            intent_result,
             ("接收指令", task),
             ("创建模拟世界", "生成世界种子、出生点和初始状态"),
             ("锁定模式", "进入文字模拟世界"),
         )
 
-    if is_image_intent(task):
+    if intent == INTENT_IMAGE_GENERATE:
         prompt = extract_image_prompt(task)
         task_id = dashscope_submit_image(prompt) if DASHSCOPE_API_KEY else None
         if task_id:
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "image_pending", "msg": f"正在生成：{prompt}", "taskId": task_id, "prompt": prompt, **current_mode_payload({"mode": "image", "modeLabel": "图片生成中"})},
+                intent_result,
                 ("接收绘图指令", task),
                 ("提取提示词", prompt),
                 ("提交文生图任务", "DashScope 异步任务"),
                 ("前端轮询", "等待图片生成完成"),
             )
         image_url = generate_image(prompt)
-        return with_workflow(
+        return with_intent_workflow(
             {"type": "image", "msg": f"正在为你生成：{prompt}", "imageUrl": image_url, "prompt": prompt, **current_mode_payload({"mode": "image", "modeLabel": "图片已生成"})},
+            intent_result,
             ("接收绘图指令", task),
             ("提取提示词", prompt),
             ("生成图片", "同步生成或兜底接口"),
             ("展示结果", "前端图片预览"),
         )
 
-    if wants_douyin_web_open(task) and any(
+    if intent == INTENT_APP_LAUNCH and wants_douyin_web_open(task) and any(
         task.startswith(prefix) for prefix in ["打开", "启动", "运行", "开启", "帮我打开", "帮我启动", "请打开"]
     ):
-        return with_workflow(
+        return with_intent_workflow(
             {"type": "web", "msg": "已为你准备抖音网页（见下方链接；若允许弹窗会自动打开新标签页）。", "previewUrl": "https://www.douyin.com", **current_mode_payload()},
+            intent_result,
             ("接收指令", task),
             ("识别网页", "抖音（网页版）"),
             ("返回链接", "https://www.douyin.com"),
         )
 
-    if any(task.startswith(prefix) for prefix in ["打开", "启动", "运行", "开启", "帮我打开", "帮我启动", "请打开"]):
+    if intent == INTENT_APP_LAUNCH and any(
+        task.startswith(prefix) for prefix in ["打开", "启动", "运行", "开启", "帮我打开", "帮我启动", "请打开"]
+    ):
         success, msg = launch_local_app(task)
         if success:
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "app", "msg": msg, **current_mode_payload()},
+                intent_result,
                 ("接收指令", task),
                 ("匹配白名单", "只允许启动安全应用"),
                 ("执行启动", msg),
             )
         if "网页" not in task and "网站" not in task and "百度" not in task:
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "chat", "msg": msg, **current_mode_payload()},
+                intent_result,
                 ("接收指令", task),
                 ("匹配白名单", "未找到支持的本机应用"),
                 ("返回提示", msg),
             )
 
-    if "打开" in task:
+    if intent == INTENT_WEB_OPEN and "打开" in task:
         site = task.replace("打开", "").strip()
         if "百度" in site:
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "web", "msg": "已为你准备百度网页（见下方链接；若允许弹窗会自动打开新标签页）。", "previewUrl": "https://www.baidu.com", **current_mode_payload()},
+                intent_result,
                 ("接收指令", task),
                 ("识别网页", "百度"),
                 ("返回链接", "https://www.baidu.com"),
             )
         if "抖音" in site and wants_douyin_web_open(task):
-            return with_workflow(
+            return with_intent_workflow(
                 {"type": "web", "msg": "已为你准备抖音网页（见下方链接；若允许弹窗会自动打开新标签页）。", "previewUrl": "https://www.douyin.com", **current_mode_payload()},
+                intent_result,
                 ("接收指令", task),
                 ("识别网页", "抖音（网页版）"),
                 ("返回链接", "https://www.douyin.com"),
             )
         search_url = f"https://www.baidu.com/s?wd={urllib.parse.quote(site)}"
-        return with_workflow(
+        return with_intent_workflow(
             {"type": "web", "msg": f"正在搜索：{site}", "previewUrl": search_url, **current_mode_payload()},
+            intent_result,
             ("接收指令", task),
             ("生成搜索词", site),
             ("返回搜索链接", search_url),
         )
 
     loc_hint = format_location_hint_for_llm(client_location if isinstance(client_location, dict) else None)
-    ctx_wf = "携带最近多轮对话"
+    ctx_wf = dm.context_label()
     if loc_hint:
         ctx_wf += "；已注入大致位置（逆地理地址，供回答贴近本地）"
-    return with_workflow(
+    return with_intent_workflow(
         {
             "type": "chat",
             "msg": ai_chat(
                 task,
-                normalize_chat_history(chat_history) or session.CHAT_HISTORY,
+                chat_history,
                 location_hint=loc_hint,
             ),
             **current_mode_payload(),
         },
+        intent_result,
         ("接收问题", task),
         ("整理上下文", ctx_wf),
         ("调用对话模型", primary_chat_model_label()),
