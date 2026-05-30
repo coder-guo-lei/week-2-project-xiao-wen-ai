@@ -300,7 +300,6 @@ def send_task():
             "type": res["type"],
         }
 
-        # 以下：parse_command 可能返回的扩展字段，按需带给前端（音乐、图、模式栏、工作流等）
         if "previewUrl" in res:
             response["previewUrl"] = res["previewUrl"]
         if "musicProvider" in res:

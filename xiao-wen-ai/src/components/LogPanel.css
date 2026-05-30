@@ -5,6 +5,10 @@
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   flex-shrink: 0; margin-bottom: 10px;
 }
+.lp-toolbar-actions {
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
 .lp-head {
   margin: 0;
   font-size: 14px;
@@ -20,9 +24,26 @@
   color: var(--text-secondary);
   cursor: pointer;
 }
-.lp-clear:hover {
+.lp-clear:hover,
+.lp-collapse:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+.lp-collapse {
+  flex-shrink: 0;
+  font-size: 12px; padding: 5px 10px; border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg-alt);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* 底部 Activity 区内：占满父级高度 */
+.lp--dock .lp-body {
+  flex: 1;
+  min-height: 0;
+}
+.lp--dock .lp-toolbar {
+  margin-bottom: var(--space-2);
 }
 .lp-empty {
   color: var(--text-tertiary);
@@ -30,10 +51,26 @@
 }
 .lp-body {
   flex: 1; min-height: 0; overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--card-border);
   border-radius: 12px; padding: 12px 14px;
   background: var(--card-bg-alt);
   font-size: 13px; line-height: 1.75;
+  contain: strict;
+  will-change: scroll-position;
+}
+.lp-virtual-inner {
+  position: relative;
+  width: 100%;
+}
+.lp-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .lp-ok { color: var(--text-secondary); }
 .lp-err { color: #ef4444; }
