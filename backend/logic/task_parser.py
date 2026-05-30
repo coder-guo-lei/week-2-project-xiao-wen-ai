@@ -62,6 +62,7 @@ from config import (
 )
 import session
 from logic.user_apps import load_user_apps, merge_launchers
+from routes.preferences import build_personalized_system_prompt, load_user_preferences
 
 logger = logging.getLogger(__name__)
 
@@ -1680,7 +1681,7 @@ def remember_chat_turn(user_text, assistant_text):
     session.CHAT_HISTORY = session.CHAT_HISTORY[-MAX_CHAT_HISTORY_MESSAGES:]
 
 
-def ai_chat(query, history=None, location_hint=None):
+def ai_chat(query, history=None, location_hint=None, user_id=None):
     system_prompt = (
         "你是智能语音助手「小文」。用自然、口语化的中文回答，适合朗读；"
         "回答尽量控制在几句以内，除非用户明确要求长文（如详细讲故事）。"
@@ -1689,6 +1690,14 @@ def ai_chat(query, history=None, location_hint=None):
     )
     if location_hint:
         system_prompt += "\n\n" + str(location_hint).strip()
+    if user_id:
+        try:
+            prefs = load_user_preferences(int(user_id))
+            personalize = build_personalized_system_prompt(prefs)
+            if personalize:
+                system_prompt += personalize
+        except Exception as e:
+            logger.warning("偏好注入失败(user_id=%s): %s", user_id, e)
     messages = [
         {"role": "system", "content": system_prompt},
         *normalize_chat_history(history),
@@ -3070,7 +3079,7 @@ def is_goodbye_intent(task):
     ])
 
 
-def parse_command(task, chat_history=None, client_location=None):
+def parse_command(task, chat_history=None, client_location=None, user_id=None):
     """统一指令路由入口。
 
     处理顺序很重要：先匹配的分支先执行。概括顺序为：
@@ -3079,6 +3088,7 @@ def parse_command(task, chat_history=None, client_location=None):
     创建模拟世界 → 文生图 → 抖音网页特例 → 本机应用白名单 →「打开」泛化（含百度搜索）
     → 默认大模型对话。中间还有若干 is_* 细分，以本函数 if 链为准。
     client_location：前端可选 { lat, lng }（WGS84），用于当地天气与附近美食等。
+    user_id：数据库用户 ID，用于注入个人偏好到 AI 对话的 system prompt 中。
     各分支可附带 mode、resetUI、workflow 等，经 routes 带给前端。
     """
     task = task.strip()
@@ -3388,6 +3398,7 @@ def parse_command(task, chat_history=None, client_location=None):
                 task,
                 normalize_chat_history(chat_history) or session.CHAT_HISTORY,
                 location_hint=loc_hint,
+                user_id=user_id,
             ),
             **current_mode_payload(),
         },

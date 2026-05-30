@@ -1,0 +1,83 @@
+@keyframes prefGuideFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes prefGuideSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pref-guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  animation: prefGuideFadeIn 0.2s ease;
+}
+
+.pref-guide-card {
+  width: min(400px, 90vw);
+  padding: 28px 28px 24px;
+  text-align: center;
+  background: var(--surface-raised, #fff);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.2);
+  animation: prefGuideSlideUp 0.25s ease;
+}
+
+.pref-guide-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.pref-guide-card h3 {
+  font-family: var(--font-display, inherit);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 10px;
+}
+
+.pref-guide-card p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 20px;
+}
+
+.pref-guide-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pref-guide-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.pref-guide-btn--primary {
+  background: linear-gradient(135deg, #4a90d9, #00d4aa);
+  color: #fff;
+}
+
+.pref-guide-btn--ghost {
+  background: transparent;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.pref-guide-btn:hover {
+  opacity: 0.9;
+}

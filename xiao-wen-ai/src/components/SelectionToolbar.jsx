@@ -4,7 +4,7 @@
  * 选中文字后悬浮：翻译、读原文、读译文。翻译走后端；朗读与回复区一致，走讯飞 /api/tts。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { apiUrl } from '../apiBase.js'
+import { apiFetch } from '../apiBase.js'
 import { cleanupTtsAudio, playXfyunTts } from '../utils/xfyunTts'
 import './SelectionToolbar.css'
 
@@ -96,7 +96,7 @@ export default function SelectionToolbar() {
     setTranslation('')
 
     try {
-      const response = await fetch(apiUrl('/api/translate-selection'), {
+      const response = await apiFetch('/api/translate-selection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: selectedText, targetLang }),

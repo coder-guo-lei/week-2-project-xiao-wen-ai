@@ -2,7 +2,7 @@
  * 讯飞 TTS 前端封装：`POST /api/tts`（ChatPanel、SelectionToolbar 共用）。
  * `voice` 传音色预设键（female / female_jiuxu）或由后端解析的 vcn；音色偏好存 localStorage。
  */
-import { apiUrl } from '../apiBase.js'
+import { apiFetch, apiUrl } from '../apiBase.js'
 
 export const TTS_API = apiUrl('/api/tts')
 export const VOICE_PREF_KEY = 'xiaowen_tts_voice_type'
@@ -57,7 +57,7 @@ export async function playXfyunTts(text, ttsAudioRef, ttsObjectUrlRef, options =
   cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
 
   const voice = options.voice || getTtsVoiceFromStorage()
-  const res = await fetch(TTS_API, {
+  const res = await apiFetch('/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: trimmed, voice }),

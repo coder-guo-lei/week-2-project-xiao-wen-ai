@@ -10,13 +10,10 @@
   gap: var(--space-4);
 }
 
-/* ----- 顶栏：品牌 + 模式 ----- */
-.app-topbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: var(--space-3) var(--space-4);
-  flex-shrink: 0;
+/* header */
+.app-header {
+  text-align: center;
+  position: relative;
 }
 
 .app-brand {
@@ -51,8 +48,56 @@
   letter-spacing: 0.14em;
 }
 
-/* ----- 工作台外壳 ----- */
-.app-workspace {
+/* ── 设置按钮（header 右上角） ── */
+.app-settings-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.app-settings-btn:hover {
+  color: var(--accent-soft);
+  background: var(--accent-bg);
+  border-color: var(--accent-soft);
+}
+
+/* ── 退出登录按钮（设置按钮左侧） ── */
+.app-logout-btn {
+  position: absolute;
+  top: 0;
+  right: 40px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.app-logout-btn:hover {
+  color: var(--danger, #e05555);
+  background: rgba(224, 85, 85, 0.1);
+  border-color: var(--danger, #e05555);
+}
+
+/* body two-column */
+.app-body {
+  display: flex;
+  gap: var(--space-6);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -61,7 +106,45 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-raised);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.panel--left {
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-5);
+}
+.panel--right {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 右侧标签栏 */
+.right-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.right-tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  border-bottom: 2px solid transparent;
+}
+.right-tab:hover {
+  color: var(--text-primary);
+}
+.right-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 /* ----- 主舞台（可滚动） ----- */

@@ -1,0 +1,165 @@
+/* SettingsPanel.css — 个人偏好设置弹窗 */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28, 25, 23, 0.35);
+  backdrop-filter: blur(6px);
+  animation: settingsFadeIn 0.2s ease;
+}
+
+@keyframes settingsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.settings-panel {
+  width: min(440px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(28, 25, 23, 0.18);
+  animation: settingsSlideUp 0.25s ease;
+}
+
+@keyframes settingsSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── header ── */
+.settings-header {
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.settings-header h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.settings-header p {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── body / fields ── */
+.settings-body {
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.settings-field label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.settings-field input,
+.settings-field select {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: var(--text-base);
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.settings-field input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.settings-field input:focus,
+.settings-field select:focus {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.settings-field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238c857c' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+/* ── message ── */
+.settings-message {
+  margin: 0 var(--space-6) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--error);
+  background: var(--error-bg);
+  border-radius: var(--radius-sm);
+}
+
+.settings-message--ok {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+/* ── footer ── */
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  border-top: 1px solid var(--border-soft);
+}
+
+.settings-footer button {
+  padding: 8px 20px;
+  font-size: var(--text-sm);
+  font-family: var(--font);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-ghost {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  background: var(--hover-bg);
+}
+
+.btn-primary {
+  color: var(--text-on-accent);
+  background: var(--accent-soft);
+  border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

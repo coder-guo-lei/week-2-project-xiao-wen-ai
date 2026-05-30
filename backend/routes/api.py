@@ -9,7 +9,8 @@ import asyncio  # 同步 Flask 视图里调用 async 讯飞 TTS 时用 asyncio.r
 import logging
 import os
 
-from flask import Blueprint, Response, jsonify, request  # Response：直接返回音频字节流
+from flask import Blueprint, Response, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from config import (
     MAX_TTS_CHARS,
@@ -60,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_bp.route("/api/translate-selection", methods=["POST"])
+@jwt_required()
 def translate_selection():
     """划词翻译：body JSON { text, targetLang } → { code, translation }。"""
     try:
@@ -79,6 +81,7 @@ def translate_selection():
 
 
 @api_bp.route("/api/image-status/<task_id>", methods=["GET"])
+@jwt_required()
 def image_status(task_id):
     """文生图异步任务：前端用 task_id 轮询，直到 status 成功或失败。"""
     try:
@@ -93,6 +96,7 @@ def image_status(task_id):
 
 
 @api_bp.route("/api/analyze-image", methods=["POST"])
+@jwt_required()
 def analyze_image_upload():
     """multipart：字段 image + question + kind → 百炼 VL 或肤质分支；返回 reply、workflow。"""
     try:
@@ -114,6 +118,7 @@ def analyze_image_upload():
 
 
 @api_bp.route("/api/tts", methods=["POST"])
+@jwt_required()
 def tts_xfyun():
     """
     朗读：JSON { text, voice, speed?, volume? }。
@@ -220,6 +225,7 @@ def tts_xfyun():
 
 
 @api_bp.route("/api/generate-chart", methods=["POST"])
+@jwt_required()
 def generate_chart_upload():
     """multipart：可选 file + task 文案；解析数值列 → chartData + workflow。"""
     try:
@@ -258,6 +264,7 @@ def generate_chart_upload():
 
 
 @api_bp.route("/api/send-task", methods=["POST"])
+@jwt_required()
 def send_task():
     """
     主入口：JSON { task, history?, location? }。
@@ -265,16 +272,25 @@ def send_task():
     返回字段由 parse_command 决定，此处把 res 中有值的键「白名单」拷贝到 HTTP JSON（避免泄露内部键）。
     """
     try:
+        from models.user import save_log
+
         data = request.get_json(silent=True) or {}
         task = (data.get("task") or "").strip()
         incoming_history = normalize_chat_history(data.get("history"))
         if not task:
             return jsonify({"code": 400, "reply": "指令不能为空"})
 
+        user_id = int(get_jwt_identity())
+        session_id = (data.get("sessionId") or "default").strip()
+
         logger.info("Received task: %s", task)
         raw_loc = data.get("location")
         client_location = raw_loc if isinstance(raw_loc, dict) else None
-        res = parse_command(task, incoming_history, client_location)
+
+        # 写入用户消息日志
+        save_log(user_id, session_id, "user", task)
+
+        res = parse_command(task, incoming_history, client_location, user_id=user_id)
         if res.get("type") == "chat" and not res.get("resetUI"):
             remember_chat_turn(task, res.get("msg", ""))
 
@@ -323,6 +339,10 @@ def send_task():
         if "imageUnderstandingUrl" in res:
             response["imageUnderstandingUrl"] = res["imageUnderstandingUrl"]
 
+        # 写入助手回复日志
+        intent_hint = res.get("type", "")
+        save_log(user_id, session_id, "assistant", res.get("msg", ""), intent_hint)
+
         return jsonify(response)
     except Exception as e:
         logger.error("Server Error: %s", e)
@@ -330,6 +350,7 @@ def send_task():
 
 
 @api_bp.route("/api/user-apps", methods=["GET"])
+@jwt_required()
 def user_apps_get():
     """列出用户自行添加的可启动应用（名称 + 绝对路径）。"""
     try:
@@ -340,6 +361,7 @@ def user_apps_get():
 
 
 @api_bp.route("/api/user-apps", methods=["POST"])
+@jwt_required()
 def user_apps_post():
     """JSON { name, path }：将本机 .exe 加入白名单（path 一般由 /api/user-apps/pick 返回）。"""
     try:
@@ -356,6 +378,7 @@ def user_apps_post():
 
 
 @api_bp.route("/api/user-apps", methods=["DELETE"])
+@jwt_required()
 def user_apps_delete():
     """Query: name=显示名称，移除一条用户白名单。"""
     try:
@@ -370,6 +393,7 @@ def user_apps_delete():
 
 
 @api_bp.route("/api/user-apps/pick", methods=["POST"])
+@jwt_required()
 def user_apps_pick_exe():
     """
     Windows：阻塞直至用户在系统对话框中选好 .exe（子进程 tkinter）。
@@ -406,6 +430,7 @@ def capabilities():
 
 
 @api_bp.route("/api/speech-to-text", methods=["POST"])
+@jwt_required()
 def speech_to_text():
     """multipart：字段 audio = WAV 文件 → 讯飞 IAT 转写文本。"""
     try:

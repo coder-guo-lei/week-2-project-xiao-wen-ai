@@ -13,3 +13,16 @@ export function apiUrl(path) {
   if (!API_BASE) return p
   return `${API_BASE.replace(/\/$/, '')}${p}`
 }
+
+export async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('xiaowen-token')
+  const headers = { ...options.headers }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  const res = await fetch(apiUrl(path), { ...options, headers })
+  if (res.status === 401 && !path.includes('/api/auth/')) {
+    window.dispatchEvent(new CustomEvent('xiaowen-auth-expired'))
+  }
+  return res
+}
