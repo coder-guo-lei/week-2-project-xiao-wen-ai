@@ -10,6 +10,23 @@
   background: var(--surface-raised);
 }
 
+/* 顶栏内嵌：更紧凑，副文案窄屏隐藏 */
+.mode-bar--top {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+.mode-bar--top .mode-bar__desc {
+  display: none;
+  font-size: var(--text-2xs);
+}
+@media (min-width: 768px) {
+  .mode-bar--top .mode-bar__desc {
+    display: block;
+  }
+}
+
 .mode-bar--world {
   border-color: color-mix(in srgb, var(--success) 42%, var(--border));
   background: linear-gradient(135deg, var(--success-bg), var(--accent-bg));

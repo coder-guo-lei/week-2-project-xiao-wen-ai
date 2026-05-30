@@ -7,14 +7,14 @@
  *   - 向后端 /api/send-task 发送指令，根据返回 type / mode / resetUI 切换界面
  *   - 处理“再见小文”：先展示告别回复，再延迟回到初始默认面板
  *
- * 子组件：CommandInput、ModeBar、WorkflowPanel、左侧反馈区（DefaultPanel / Chat / Weather / Music / Image / Chart 等）、
- * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、右侧 LogPanel、吉祥物 XiaowenBot
+ * 子组件：CommandInput、ModeBar、WorkflowPanel、主舞台反馈区（DefaultPanel / Chat / Weather / Music / Image / Chart 等）、
+ * ImageAnalyzer、FaceWellnessCamera、SelectionToolbar、底部 ActivityDock 日志、吉祥物 XiaowenBot
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
 import './App.css'
 
 import CommandInput from './components/CommandInput'
-import LogPanel from './components/LogPanel'
+import ActivityDock from './components/ActivityDock'
 import MusicPlayer from './components/MusicPlayer'
 import WeatherCard from './components/WeatherCard'
 import ChatPanel from './components/ChatPanel'
@@ -37,6 +37,16 @@ const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
 const CHAT_HISTORY_KEY = 'xiaowen_chat_history'
 const MAX_COMMAND_HISTORY = 8
 const MAX_CHAT_HISTORY = 12
+const LOG_PANEL_OPEN_KEY = 'xiaowen_log_panel_open'
+
+const STAGE_TITLES = {
+  default: '智慧助手空间',
+  chat: '对话回复',
+  weather: '天气查询',
+  music: '音乐播放',
+  image: '图片生成',
+  chart: '数据图表',
+}
 /** 文生图轮询最长等待（毫秒）；略大于后端 IMAGE_TASK_TIMEOUT（默认 120s），避免无限轮询 */
 const IMAGE_POLL_MAX_MS = 130_000
 
@@ -100,7 +110,15 @@ function fetchClientLocation(timeoutMs = 6500) {
 function App() {
   // ---------- 输入与日志 ----------
   const [task, setTask] = useState('') // 与 CommandInput 受控绑定；发送成功后会清空
-  const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 右侧 LogPanel 数据源
+  const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 运行日志数据源
+  const [logPanelOpen, setLogPanelOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOG_PANEL_OPEN_KEY)
+      if (saved === '1') return true
+      if (saved === '0') return false
+    } catch { /* ignore */ }
+    return false
+  })
   // ---------- 左栏主展示区：根据 contentType 切换子组件 ----------
   const [contentType, setContentType] = useState('default')
   const [chatReply, setChatReply] = useState('') // ChatPanel 展示的纯文本
@@ -158,6 +176,12 @@ function App() {
   const clearLogList = useCallback(() => {
     setLogList([])
   }, [])
+
+  const toggleLogPanel = useCallback(() => setLogPanelOpen((v) => !v), [])
+
+  useEffect(() => {
+    try { localStorage.setItem(LOG_PANEL_OPEN_KEY, logPanelOpen ? '1' : '0') } catch { /* ignore */ }
+  }, [logPanelOpen])
 
   /** 去重后把指令插到历史最前，并写入 localStorage */
   const rememberCommand = useCallback((cmdText) => {
@@ -345,7 +369,6 @@ function App() {
         setWeatherData(data.extraData)
         setContentType('weather')
       } else if (data.type === 'chart' && data.chartData) {
-        // 后端已把文本数据解析成 chartData，前端只负责切换到图表组件并渲染。
         setChartData(data.chartData)
         setContentType('chart')
       } else if (data.type === 'chat' || data.type === 'app') {
@@ -353,7 +376,6 @@ function App() {
         if (data.type === 'chat') updateChatHistory(cmdText, data.reply ?? '')
         setContentType('chat')
       } else if (data.type === 'image_pending' && data.taskId) {
-        // 异步图片：立即显示生成中状态，后台轮询
         setImagePrompt(data.prompt || 'AI生成图片')
         setImageUrl('')
         startImagePolling(data.taskId)
@@ -404,7 +426,6 @@ function App() {
         setContentType('default')
       }
 
-      // 指令处理完后，将视口跳转到反馈区标题处
       setTimeout(() => {
         feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
@@ -615,26 +636,30 @@ function App() {
     }
   }, [addLog, isAnalyzingImage])
 
+  const stageTitle = STAGE_TITLES[contentType] || STAGE_TITLES.default
+
   return (
     <div className="app">
       <SelectionToolbar />
       <XiaowenBot />
-      {/* 顶栏：产品名 */}
-      <header className="app-header">
-        <div className="app-logo">小文</div>
-        <p className="app-subtitle">智能语音助手</p>
+
+      <header className="app-topbar">
+        <div className="app-brand">
+          <span className="app-logo">小文</span>
+          <span className="app-subtitle">智能语音助手</span>
+        </div>
+        <ModeBar
+          variant="top"
+          mode={mode}
+          modeLabel={modeLabel}
+          worldState={worldState}
+          quickActions={quickActions}
+          onQuickAction={autoSendTask}
+        />
       </header>
 
-      <div className="app-body">
-        {/* 左栏：模式条 + 输入 + 按 contentType 切换的反馈栈 */}
-        <aside className="panel panel--left">
-          <ModeBar
-            mode={mode}
-            modeLabel={modeLabel}
-            worldState={worldState}
-            quickActions={quickActions}
-            onQuickAction={autoSendTask}
-          />
+      <div className="app-workspace">
+        <header className="composer">
           <CommandInput
             task={task}
             setTask={setTask}
@@ -648,11 +673,28 @@ function App() {
             commandHistory={commandHistory}
             onHistoryClick={autoSendTask}
           />
-          <h3 className="panel-title" ref={feedbackRef}>✨ 智慧助手空间</h3>
-          <div className={`panel-content panel-content--${contentType}`}>
+        </header>
+
+        <section className="stage" aria-label={stageTitle}>
+          <div className="stage-head">
+            <h2 className="stage-title" ref={feedbackRef}>
+              <span className="stage-title-icon" aria-hidden>✨</span>
+              {stageTitle}
+            </h2>
+            <span className="stage-badge">{modeLabel}</span>
+          </div>
+          <div className={`stage-body panel-content panel-content--${contentType}`}>
             <div className="feedback-stack">
-              {/* 闲聊、网页链接摘要、应用打开结果等 */}
-              {contentType === 'chat' && <ChatPanel reply={chatReply} />}
+              {contentType === 'chat' && (
+                <ChatPanel
+                  reply={chatReply}
+                  history={chatHistory}
+                  onClearHistory={() => {
+                    clearChatHistory()
+                    setChatReply('')
+                  }}
+                />
+              )}
               {contentType === 'chart' && <ChartPanel data={chartData} onUpload={generateChartFromFile} disabled={isGeneratingChart} />}
               {contentType === 'weather' && <WeatherCard data={weatherData} />}
               {contentType === 'music' && music.previewUrl && <MusicPlayer music={music} />}
@@ -684,12 +726,14 @@ function App() {
               <WorkflowPanel steps={workflowSteps} />
             </div>
           </div>
-        </aside>
+        </section>
 
-        {/* right — 运行日志 */}
-        <main className="panel panel--right">
-          <LogPanel logs={logList} onClear={clearLogList} />
-        </main>
+        <ActivityDock
+          logs={logList}
+          open={logPanelOpen}
+          onToggle={toggleLogPanel}
+          onClear={clearLogList}
+        />
       </div>
     </div>
   )

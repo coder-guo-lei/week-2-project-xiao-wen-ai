@@ -1,45 +1,87 @@
 /**
- * LogPanel.jsx — 运行日志面板
+ * LogPanel.jsx — 运行日志面板（虚拟滚动）
  *
  * 功能：
- *   - 逐条展示操作日志（识别到的指令、AI 回复、错误信息等）
- *   - 包含 ❌ 的条目以红色高亮显示
+ *   - 仅渲染可视区域内的日志条目，支持万级日志流畅滚动
+ *   - 自适应行高（measureElement 测量实际高度）
+ *   - 含 ❌ 的条目以红色高亮显示
  *   - 每次新增日志后自动滚动到底部
  * Props：
- *   logs    {string[]} 日志文本数组，由父组件 App 维护
- *   onClear {fn=}      点击「清空日志」时回调（可选）
+ *   logs           {string[]} 日志文本数组，由父组件 App 维护
+ *   onClear        {fn=}      点击「清空日志」时回调（可选）
+ *   onCollapse     {fn=}      点击收起时回调（可选）
+ *   collapseLabel  {string}   收起按钮文案，默认「收起」
+ *   className      {string}   附加根节点 class
  */
-import { useRef, useEffect } from 'react'
+import { useRef, useLayoutEffect } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import './LogPanel.css'
 
-export default function LogPanel({ logs, onClear }) {
-  // 指向可滚动容器，用于在 logs 变化时把 scrollTop 设到底部
-  const bodyRef = useRef(null)
+/** 单行估算高度：13px × line-height 1.75 */
+const ESTIMATE_ROW_PX = 23
+const OVERSCAN = 12
 
-  // 依赖 logs：每新增一条，用户无需手动滚到底即可看到最新日志
-  useEffect(() => {
-    const el = bodyRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [logs])
+export default function LogPanel({ logs, onClear, onCollapse, collapseLabel = '收起', className = '' }) {
+  const bodyRef = useRef(null)
+  const prevCountRef = useRef(logs.length)
+
+  const virtualizer = useVirtualizer({
+    count: logs.length,
+    getScrollElement: () => bodyRef.current,
+    estimateSize: () => ESTIMATE_ROW_PX,
+    overscan: OVERSCAN,
+  })
+
+  // 新增日志时滚到底部；清空时不强制滚动
+  useLayoutEffect(() => {
+    const prev = prevCountRef.current
+    prevCountRef.current = logs.length
+    if (logs.length === 0 || logs.length <= prev) return
+    virtualizer.scrollToIndex(logs.length - 1, { align: 'end' })
+  }, [logs, virtualizer])
+
+  const rootClass = ['lp', className].filter(Boolean).join(' ')
 
   return (
-    <div className="lp">
+    <div className={rootClass}>
       <div className="lp-toolbar">
         <h3 className="lp-head">📋 运行日志</h3>
-        {typeof onClear === 'function' && (
-          <button type="button" className="lp-clear" onClick={onClear}>
-            清空日志
-          </button>
-        )}
+        <div className="lp-toolbar-actions">
+          {typeof onClear === 'function' && (
+            <button type="button" className="lp-clear" onClick={onClear}>
+              清空
+            </button>
+          )}
+          {typeof onCollapse === 'function' && (
+            <button type="button" className="lp-collapse" onClick={onCollapse}>
+              {collapseLabel}
+            </button>
+          )}
+        </div>
       </div>
-      {/* 列表区：每条一行，含 ❌ 的加 lp-err 样式 */}
       <div className="lp-body" ref={bodyRef}>
         {logs.length === 0 ? (
           <div className="lp-empty">暂无运行记录</div>
         ) : (
-          logs.map((item, i) => (
-            <div key={i} className={item.includes('❌') ? 'lp-err' : 'lp-ok'}>{item}</div>
-          ))
+          <div
+            className="lp-virtual-inner"
+            style={{ height: virtualizer.getTotalSize() }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const text = logs[virtualRow.index]
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className={`lp-row ${text.includes('❌') ? 'lp-err' : 'lp-ok'}`}
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  {text}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>
