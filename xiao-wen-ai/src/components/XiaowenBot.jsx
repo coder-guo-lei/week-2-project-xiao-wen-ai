@@ -1,27 +1,27 @@
 /**
- * XiaowenBot.jsx — 桌面吉祥物,用 React 管状态与交互，用 内联 SVG 画形象，用 CSS 动画和类名切换做表情与特效
- *
- * - Pointer Events：按下拖动、松手根据速度启动惯性（requestAnimationFrame + 指数衰减 + 边缘反弹）
- * - prefers-reduced-motion：系统减少动效时不启用「甩出」惯性
- * - localStorage 持久化 left/top；resize 时夹紧在视口内
- * - SVG：西服（驳领+衬衫+领带）；抓取时整体下沉 +「被抓住」嘴眉；惯性旋转时迷糊眼
- * - 惯性结束后先滑落到底边，再在底边晕眩约 3s
- * - 靠在左/右边缘静置约 5s：缩进屏幕只露头探头 + 专用表情
+ * XiaowenBot.jsx — 小文AI智能语音助手 · 桌面吉祥物
+ * 造型：圆滚滚蛋形 — 哑光白主体 + 淡紫面罩 + 渐变蓝超大眼 + 能量核心 + 星环轨道 + 耳罩天线 + 短粗四肢
+ * 交互：拖拽/惯性/晕眩/探头/表情/眼球跟随 | 点击：语音波形 + 消息气泡
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import './XiaowenBot.css'
 
-/** 随机切换的表情 key，与 CSS 中 .xiaowen-bot__mouth--* 对应 */
 const MOODS = ['neutral', 'happy', 'curious', 'sleepy', 'surprised']
 const STORAGE_KEY = 'xiaowen_bot_pos'
-const DEFAULT_W = 112
-const DEFAULT_H = 158
-/** 距左右边缘小于此值视为「靠边」 */
+const BUBBLE_TEXTS = [
+  '你好呀~',
+  '我是小文AI',
+  '有什么可以帮你？',
+  '聆听你的指令',
+  '随时待命哦',
+]
+const DEFAULT_W = 140
+const DEFAULT_H = 180
 const EDGE_NEAR_PX = 46
-/** 靠边连续静置多久后触发探头 */
 const EDGE_PEEK_AFTER_MS = 5000
+const SPEAK_MS = 3000
+const CLICK_DRAG_THRESHOLD = 8
 
-/** 把 (x,y) 限制在视口内，留 pad 边距，避免机器人跑出屏幕 */
 function clampPos(x, y, vw, vh, w, h) {
   const pad = 8
   return {
@@ -30,7 +30,230 @@ function clampPos(x, y, vw, vh, w, h) {
   }
 }
 
+function SpaceRobotSvg({ uid, blink, pupil, inertiaSpin, dizzy, dragging, peekSide }) {
+  const id = (name) => `xw-bot-${name}-${uid}`
+
+  const renderEye = (cx, cy) => (
+    <g key={cx} transform={`translate(${cx + pupil.ox}, ${cy + pupil.oy})`} className="xiaowen-bot__eye-mount">
+      {inertiaSpin || dizzy ? (
+        <g className="xiaowen-bot__pupil-orbit">
+          <circle r="14" fill="#bfdbfe" stroke="#7dd3fc" strokeWidth="0.8" />
+          <circle r="5" cx="3" cy="-1" fill="#1e3a5f" className="xiaowen-bot__pupil-dazed" />
+        </g>
+      ) : (
+        <g className="xiaowen-bot__eye-inner">
+          <circle r="14" fill={`url(#${id('eye')})`} />
+          <ellipse cx="0" cy="3" rx="6.5" ry="7.5" fill="#1d4ed8" opacity="0.3" />
+          <circle r="9.5" fill="none" stroke="rgba(96,165,250,0.25)" strokeWidth="1" />
+          <ellipse cx="-6" cy="-5.5" rx="5" ry="4.2" fill="#ffffff" opacity="0.98" />
+          <circle r="2.4" cx="5.5" cy="-2.2" fill="#ffffff" opacity="0.85" />
+          <circle r="1.6" cx="-2.2" cy="6" fill="#ffffff" opacity="0.6" />
+          <circle r="1" cx="7.5" cy="4.2" fill="#ffffff" opacity="0.45" />
+        </g>
+      )}
+    </g>
+  )
+
+  return (
+    <svg className="xiaowen-bot__svg" viewBox="0 0 140 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id={id('body')} cx="46%" cy="32%" r="70%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="40%" stopColor="#f8fafc" />
+          <stop offset="75%" stopColor="#e2e8f0" />
+          <stop offset="95%" stopColor="#c8d2e0" />
+        </radialGradient>
+        <radialGradient id={id('face')} cx="50%" cy="38%" r="60%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="55%" stopColor="#fdfdfd" />
+          <stop offset="100%" stopColor="#f4f6fa" />
+        </radialGradient>
+        <linearGradient id={id('limb')} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#bae6fd" />
+          <stop offset="35%" stopColor="#7dd3fc" />
+          <stop offset="70%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0ea5e9" />
+        </linearGradient>
+        <linearGradient id={id('panel')} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ede9fe" />
+          <stop offset="30%" stopColor="#c4b5fd" />
+          <stop offset="65%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#8b5cf6" />
+        </linearGradient>
+        <linearGradient id={id('eye')} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#1e40af" />
+          <stop offset="30%" stopColor="#2563eb" />
+          <stop offset="62%" stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#60a5fa" />
+        </linearGradient>
+        <radialGradient id={id('core')} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="25%" stopColor="#cffafe" />
+          <stop offset="55%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#0891b2" />
+        </radialGradient>
+        <filter id={id('glow')} x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id={id('bloom')} x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="6" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id={id('soft')} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="2.2" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* 地面柔影 */}
+      <ellipse cx="70" cy="172" rx="46" ry="9" fill="rgba(139,92,246,0.08)" />
+
+      {/* 星环 · 后层 */}
+      <g className="xiaowen-bot__rings xiaowen-bot__rings--back" transform="translate(70 108)">
+        <ellipse rx="70" ry="20" fill="none" stroke="rgba(34,211,238,0.1)" strokeWidth="2.4" transform="rotate(-26)" />
+        <ellipse rx="58" ry="14" fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="1.8" transform="rotate(-14)" />
+      </g>
+
+      {/* 主体 · 圆滚滚蛋形 */}
+      <g className="xiaowen-bot__body">
+        <path
+          d="M22 50 C22 8 40 4 70 4 C100 4 118 8 118 50 C118 102 110 138 70 138 C30 138 22 102 22 50 Z"
+          fill={`url(#${id('body')})`}
+          stroke="rgba(148,163,184,0.28)"
+          strokeWidth="0.9"
+        />
+        <ellipse cx="42" cy="34" rx="16" ry="21" fill="rgba(255,255,255,0.5)" opacity="0.6" />
+        <path d="M26 106 C26 134 50 138 70 138 C90 138 114 134 114 106 C114 118 102 128 70 128 C38 128 26 118 26 106 Z" fill="rgba(99,102,241,0.07)" />
+      </g>
+
+      {/* 四肢 · 更短更粗（放在主体前面、星环前层前面） */}
+      <g className="xiaowen-bot__circuit">
+        <g className="xiaowen-bot__limb--arm-l">
+          <ellipse cx="20" cy="101" rx="10" ry="13" fill={`url(#${id('limb')})`} stroke="#0ea5e9" strokeWidth="0.7" opacity="0.95" />
+          <ellipse cx="19" cy="107" rx="8.5" ry="4.5" fill="none" stroke="#67e8f9" strokeWidth="1.8" filter={`url(#${id('glow')})`} />
+        </g>
+        <g className="xiaowen-bot__limb--arm-r">
+          <ellipse cx="120" cy="101" rx="10" ry="13" fill={`url(#${id('limb')})`} stroke="#0ea5e9" strokeWidth="0.7" opacity="0.95" />
+          <ellipse cx="121" cy="107" rx="8.5" ry="4.5" fill="none" stroke="#67e8f9" strokeWidth="1.8" filter={`url(#${id('glow')})`} />
+        </g>
+        <g className="xiaowen-bot__limb--leg-l">
+          <ellipse cx="50" cy="136" rx="13.5" ry="12" fill={`url(#${id('limb')})`} stroke="#0ea5e9" strokeWidth="0.8" />
+          <ellipse cx="50" cy="142" rx="11.5" ry="5" fill="#bae6fd" opacity="0.5" />
+        </g>
+        <g className="xiaowen-bot__limb--leg-r">
+          <ellipse cx="90" cy="136" rx="13.5" ry="12" fill={`url(#${id('limb')})`} stroke="#0ea5e9" strokeWidth="0.8" />
+          <ellipse cx="90" cy="142" rx="11.5" ry="5" fill="#bae6fd" opacity="0.5" />
+        </g>
+      </g>
+
+      {/* 两侧科技面板 */}
+      <g className="xiaowen-bot__panel">
+        <rect x="24" y="80" width="11" height="34" rx="5.5" fill={`url(#${id('panel')})`} stroke="rgba(139,92,246,0.4)" strokeWidth="0.8" opacity="0.8" />
+        <line x1="27" y1="88" x2="32" y2="88" stroke="#67e8f9" strokeWidth="1.3" strokeLinecap="round" opacity="0.6" filter={`url(#${id('glow')})`} />
+        <line x1="27" y1="106" x2="32" y2="106" stroke="#67e8f9" strokeWidth="1.3" strokeLinecap="round" opacity="0.6" filter={`url(#${id('glow')})`} />
+
+        <rect x="105" y="80" width="11" height="34" rx="5.5" fill={`url(#${id('panel')})`} stroke="rgba(139,92,246,0.4)" strokeWidth="0.8" opacity="0.8" />
+        <line x1="108" y1="88" x2="113" y2="88" stroke="#67e8f9" strokeWidth="1.3" strokeLinecap="round" opacity="0.6" filter={`url(#${id('glow')})`} />
+        <line x1="108" y1="106" x2="113" y2="106" stroke="#67e8f9" strokeWidth="1.3" strokeLinecap="round" opacity="0.6" filter={`url(#${id('glow')})`} />
+      </g>
+
+      {/* 能量核心 */}
+      <g className="xiaowen-bot__core">
+        <circle cx="70" cy="116" r="24" fill="rgba(34,211,238,0.07)" filter={`url(#${id('bloom')})`} className="xiaowen-bot__pulse" />
+        <circle cx="70" cy="116" r="19" fill="rgba(221,214,254,0.35)" stroke="rgba(167,139,250,0.5)" strokeWidth="2.2" />
+        <circle cx="70" cy="116" r="13.5" fill="none" stroke="#22d3ee" strokeWidth="2.8" filter={`url(#${id('glow')})`} />
+        <circle cx="70" cy="116" r="9.5" fill={`url(#${id('core')})`} />
+        <circle cx="70" cy="116" r="4" fill="#ffffff" opacity="0.95" filter={`url(#${id('soft')})`} />
+      </g>
+
+      {/* 星环 · 前层 */}
+      <g className="xiaowen-bot__rings xiaowen-bot__rings--front" transform="translate(70 108)">
+        <ellipse
+          rx="71" ry="21" fill="none"
+          stroke="#22d3ee" strokeWidth="2.8"
+          strokeDasharray="11 10"
+          transform="rotate(-30)"
+          className="xiaowen-bot__ring-dash"
+          filter={`url(#${id('glow')})`}
+          opacity="0.82"
+        />
+        <ellipse rx="57" ry="15" fill="none" stroke="rgba(167,139,250,0.6)" strokeWidth="1.6" transform="rotate(-10)" />
+        <ellipse rx="48" ry="11" fill="none" stroke="rgba(103,232,249,0.45)" strokeWidth="1.1" transform="rotate(-4)" />
+      </g>
+
+      {/* 耳罩 · 更立体 */}
+      <g className="xiaowen-bot__ear">
+        <ellipse cx="13" cy="54" rx="13" ry="15" fill={`url(#${id('panel')})`} stroke="rgba(139,92,246,0.55)" strokeWidth="1.3" opacity="0.97" />
+        <ellipse cx="14" cy="56" rx="10.5" ry="12.5" fill="rgba(88,50,200,0.14)" />
+        <ellipse cx="13" cy="54" rx="7.5" ry="8.5" fill="none" stroke="#22d3ee" strokeWidth="2.4" filter={`url(#${id('glow')})`} />
+        <ellipse cx="10" cy="48" rx="4" ry="2.2" fill="rgba(255,255,255,0.35)" />
+        <circle cx="13" cy="54" r="2.2" fill="#67e8f9" opacity="0.9" />
+
+        <ellipse cx="127" cy="54" rx="13" ry="15" fill={`url(#${id('panel')})`} stroke="rgba(139,92,246,0.55)" strokeWidth="1.3" opacity="0.97" />
+        <ellipse cx="126" cy="56" rx="10.5" ry="12.5" fill="rgba(88,50,200,0.14)" />
+        <ellipse cx="127" cy="54" rx="7.5" ry="8.5" fill="none" stroke="#22d3ee" strokeWidth="2.4" filter={`url(#${id('glow')})`} />
+        <ellipse cx="130" cy="48" rx="4" ry="2.2" fill="rgba(255,255,255,0.35)" />
+        <circle cx="127" cy="54" r="2.2" fill="#67e8f9" opacity="0.9" />
+      </g>
+
+      {/* 面罩 · 更厚更亮 */}
+      <g className="xiaowen-bot__helmet">
+        <ellipse cx="70" cy="56" rx="48" ry="46" fill="none" stroke="rgba(34,211,238,0.2)" strokeWidth="7" filter={`url(#${id('bloom')})`} />
+        <ellipse cx="70" cy="56" rx="47" ry="45" fill={`url(#${id('face')})`} stroke={`url(#${id('panel')})`} strokeWidth="3.2" />
+        <ellipse cx="70" cy="56" rx="44.5" ry="42.5" fill="none" stroke="rgba(103,232,249,0.4)" strokeWidth="1.6" filter={`url(#${id('glow')})`} />
+        <ellipse cx="70" cy="48" rx="40" ry="29" fill="rgba(224,231,255,0.28)" />
+      </g>
+
+      {/* 眼睛 */}
+      <ellipse cx="42" cy="56" rx="15" ry={blink ? 1.4 : 15} fill="#e0f2fe" className="xiaowen-bot__eyelid" />
+      {!blink && renderEye(42, 56)}
+      <ellipse cx="98" cy="56" rx="15" ry={blink ? 1.4 : 15} fill="#e0f2fe" className="xiaowen-bot__eyelid" />
+      {!blink && renderEye(98, 56)}
+
+      {/* 腮红 */}
+      <ellipse cx="26" cy="64" rx="7.5" ry="4.5" fill="#FB9288" opacity="0.25" />
+      <ellipse cx="114" cy="64" rx="7.5" ry="4.5" fill="#FB9288" opacity="0.25" />
+
+      {/* 嘴巴（已修复为微笑线） */}
+      <path className="xiaowen-bot__mouth xiaowen-bot__mouth--neutral" d="M52 74 Q70 82 88 74" stroke="#92400E" strokeWidth="1.9" strokeLinecap="round" fill="none" />
+      <path className="xiaowen-bot__mouth xiaowen-bot__mouth--happy" d="M50 72 Q70 90 90 72" stroke="#92400E" strokeWidth="2.1" strokeLinecap="round" fill="none" />
+      <path className="xiaowen-bot__mouth xiaowen-bot__mouth--curious" d="M60 76 Q70 80 80 76" stroke="#92400E" strokeWidth="1.7" strokeLinecap="round" fill="none" />
+      <line className="xiaowen-bot__mouth xiaowen-bot__mouth--sleepy" x1="56" y1="78" x2="84" y2="78" stroke="#92400E" strokeWidth="1.7" strokeLinecap="round" />
+      <ellipse className="xiaowen-bot__mouth xiaowen-bot__mouth--surprised" cx="70" cy="76" rx="5" ry="6.5" stroke="#92400E" strokeWidth="1.7" fill="none" />
+      <path className="xiaowen-bot__mouth xiaowen-bot__mouth--grabbed" d="M56 78 Q70 70 84 78" stroke="#92400E" strokeWidth="1.7" strokeLinecap="round" fill="none" />
+      <ellipse className="xiaowen-bot__mouth xiaowen-bot__mouth--peek" cx="70" cy="77" rx="4" ry="3" stroke="#92400E" strokeWidth="1.6" fill="none" />
+
+      {/* 天线（已修复位置） */}
+      <g className="xiaowen-bot__antenna-group">
+        <path d="M56 30 Q50 12 60 2 Q64 -2 72 0" stroke={`url(#${id('limb')})`} strokeWidth="3" strokeLinecap="round" fill="none" />
+        <circle cx="72" cy="0" r="6.5" fill="#7dd3fc" stroke="#38bdf8" strokeWidth="1.4" className="xiaowen-bot__antenna-tip" />
+        <circle cx="70" cy="-2" r="3.2" fill="rgba(255,255,255,0.7)" />
+      </g>
+
+      {/* 眉毛 */}
+      {(dragging || peekSide !== 'none') && (
+        <>
+          <path className="xiaowen-bot__brow xiaowen-bot__brow--l" d="M28 38 Q42 32 52 38" stroke="#64748b" strokeWidth="2.1" strokeLinecap="round" fill="none" />
+          <path className="xiaowen-bot__brow xiaowen-bot__brow--r" d="M88 38 Q100 32 112 38" stroke="#64748b" strokeWidth="2.1" strokeLinecap="round" fill="none" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 export default function XiaowenBot() {
+  const uid = useId().replace(/:/g, '')
+
   const rootRef = useRef(null)
   const cardRef = useRef(null)
   const moodTimerRef = useRef(null)
@@ -42,22 +265,29 @@ export default function XiaowenBot() {
   const dizzyTimerRef = useRef(null)
   const fallRafRef = useRef(null)
   const peekIdleTimerRef = useRef(null)
+  const speakTimerRef = useRef(null)
+  const didDragMoveRef = useRef(false)
 
   const [pos, setPos] = useState({ x: 24, y: 24 })
   const [dragging, setDragging] = useState(false)
-  /** 拖拽位移（相对起点），驱动衣服被抓摆方向 */
   const [dragPull, setDragPull] = useState({ dx: 0, dy: 0 })
-  /** 惯性滑行中：整身快速旋转（丢出去） */
   const [inertiaSpin, setInertiaSpin] = useState(false)
-  /** 惯性结束后晕一会 */
   const [dizzy, setDizzy] = useState(false)
-  /** 靠边静置后：none | left | right 探头 */
   const [peekSide, setPeekSide] = useState('none')
-  /** 滑落到底动画中，不参与靠边计时 */
   const [isFalling, setIsFalling] = useState(false)
   const [pupil, setPupil] = useState({ ox: 0, oy: 0 })
   const [mood, setMood] = useState('neutral')
   const [blink, setBlink] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [bubbleText, setBubbleText] = useState(BUBBLE_TEXTS[0])
+  const [showBubble, setShowBubble] = useState(false)
+
+  const clearSpeakTimer = useCallback(() => {
+    if (speakTimerRef.current != null) {
+      window.clearTimeout(speakTimerRef.current)
+      speakTimerRef.current = null
+    }
+  }, [])
 
   const clearDizzyTimer = useCallback(() => {
     if (dizzyTimerRef.current != null) {
@@ -133,7 +363,6 @@ export default function XiaowenBot() {
     setInertiaSpin(false)
   }, [])
 
-  /** 惯性停后沿底边「滑落」到屏幕底缘，再执行 onDone（开始晕眩） */
   const animateFallToBottom = useCallback(
     (onDone) => {
       cancelFallAnimation()
@@ -146,7 +375,6 @@ export default function XiaowenBot() {
       const targetX = Math.min(Math.max(pad, start.x), maxX)
       const duration = 480
       const t0 = performance.now()
-
       const easeOut = (t) => 1 - (1 - t) ** 3
 
       const tickFall = (now) => {
@@ -171,7 +399,6 @@ export default function XiaowenBot() {
     [getBotSize, persistPos, cancelFallAnimation],
   )
 
-  /** vx,vy 单位：像素/秒（px/s）；滑行时开启旋转，停后晕眩数秒 */
   const startInertia = useCallback(
     (vx, vy) => {
       stopInertia()
@@ -195,7 +422,7 @@ export default function XiaowenBot() {
         const speed = Math.hypot(vx0, vy0)
         if (speed < 28) {
           persistPos(posRef.current)
-          stopInertia() // 内含 setInertiaSpin(false)
+          stopInertia()
           const startDizzyAtBottom = () => {
             setDizzy(true)
             clearDizzyTimer()
@@ -265,16 +492,14 @@ export default function XiaowenBot() {
     if (!el) return
     const r = el.getBoundingClientRect()
     const faceCx = r.left + r.width / 2
-    const faceCy = r.top + r.height * 0.36
+    const faceCy = r.top + r.height * 0.32
     const dx = clientX - faceCx
     const dy = clientY - faceCy
     const len = Math.hypot(dx, dy) || 1
-    const damp = Math.min(len / 140, 1)
-    const maxX = 5.5
-    const maxY = 4.2
+    const damp = Math.min(len / 120, 1)
     setPupil({
-      ox: (dx / len) * maxX * damp,
-      oy: (dy / len) * maxY * damp,
+      ox: (dx / len) * 4 * damp,
+      oy: (dy / len) * 3.2 * damp,
     })
   }, [])
 
@@ -286,8 +511,7 @@ export default function XiaowenBot() {
 
   useEffect(() => {
     const pick = () => {
-      const next = MOODS[Math.floor(Math.random() * MOODS.length)]
-      setMood(next)
+      setMood(MOODS[Math.floor(Math.random() * MOODS.length)])
       moodTimerRef.current = window.setTimeout(pick, 4500 + Math.random() * 7500)
     }
     moodTimerRef.current = window.setTimeout(pick, 3000)
@@ -314,16 +538,16 @@ export default function XiaowenBot() {
   useEffect(
     () => () => {
       clearDizzyTimer()
+      clearSpeakTimer()
       cancelFallAnimation()
       if (peekIdleTimerRef.current != null) {
         window.clearTimeout(peekIdleTimerRef.current)
         peekIdleTimerRef.current = null
       }
     },
-    [clearDizzyTimer, cancelFallAnimation],
+    [clearDizzyTimer, clearSpeakTimer, cancelFallAnimation],
   )
 
-  /** 靠左/右边缘不动超过 EDGE_PEEK_AFTER_MS → 探头；拖拽/惯性/晕/滑落时取消 */
   useEffect(() => {
     if (peekIdleTimerRef.current != null) {
       window.clearTimeout(peekIdleTimerRef.current)
@@ -355,7 +579,6 @@ export default function XiaowenBot() {
       return undefined
     }
 
-    /* 仍在靠边但每次位置变化都先缩回去，重新累计 5s「不动」 */
     queueMicrotask(() => setPeekSide('none'))
 
     peekIdleTimerRef.current = window.setTimeout(() => {
@@ -371,6 +594,19 @@ export default function XiaowenBot() {
     }
   }, [pos.x, pos.y, dragging, inertiaSpin, dizzy, isFalling])
 
+  const handleClick = useCallback(() => {
+    if (didDragMoveRef.current) return
+    clearSpeakTimer()
+    setBubbleText(BUBBLE_TEXTS[Math.floor(Math.random() * BUBBLE_TEXTS.length)])
+    setShowBubble(true)
+    setIsSpeaking(true)
+    speakTimerRef.current = window.setTimeout(() => {
+      setIsSpeaking(false)
+      setShowBubble(false)
+      speakTimerRef.current = null
+    }, SPEAK_MS)
+  }, [clearSpeakTimer])
+
   const onPointerDown = useCallback(
     (e) => {
       if (e.button !== 0) return
@@ -380,6 +616,7 @@ export default function XiaowenBot() {
       setDizzy(false)
       setPeekSide('none')
       setDragPull({ dx: 0, dy: 0 })
+      didDragMoveRef.current = false
       e.preventDefault()
       cardRef.current?.setPointerCapture(e.pointerId)
       const startX = e.clientX
@@ -402,8 +639,13 @@ export default function XiaowenBot() {
     (e) => {
       const d = dragRef.current
       if (!d || e.pointerId !== d.pointerId) return
-      const nx = d.origX + (e.clientX - d.startX)
-      const ny = d.origY + (e.clientY - d.startY)
+      const dx = e.clientX - d.startX
+      const dy = e.clientY - d.startY
+      if (Math.hypot(dx, dy) > CLICK_DRAG_THRESHOLD) {
+        didDragMoveRef.current = true
+      }
+      const nx = d.origX + dx
+      const ny = d.origY + dy
       const now = performance.now()
       d.samples.push({ t: now, x: e.clientX, y: e.clientY })
       if (d.samples.length > 8) d.samples.shift()
@@ -411,8 +653,8 @@ export default function XiaowenBot() {
       posRef.current = next
       setPos(next)
       setDragPull({
-        dx: Math.max(-42, Math.min(42, e.clientX - d.startX)),
-        dy: Math.max(-42, Math.min(42, e.clientY - d.startY)),
+        dx: Math.max(-42, Math.min(42, dx)),
+        dy: Math.max(-42, Math.min(42, dy)),
       })
     },
     [applyClamp],
@@ -454,10 +696,27 @@ export default function XiaowenBot() {
     [persistPos, startInertia],
   )
 
+  const stateClass = [
+    'xiaowen-bot',
+    dragging && 'xiaowen-bot--dragging',
+    inertiaSpin && 'xiaowen-bot--inertia',
+    dizzy && 'xiaowen-bot--dizzy',
+    peekSide === 'left' && 'xiaowen-bot--peek-left',
+    peekSide === 'right' && 'xiaowen-bot--peek-right',
+    isSpeaking && 'xiaowen-bot--speaking',
+  ].filter(Boolean).join(' ')
+
+  const cardClass = [
+    'xiaowen-bot__card',
+    `xiaowen-bot__card--${mood}`,
+    dragging && 'xiaowen-bot__card--grabbed',
+    peekSide !== 'none' && 'xiaowen-bot__card--peek',
+    isSpeaking && 'xiaowen-bot__card--speaking',
+  ].filter(Boolean).join(' ')
+
   return (
-    // fixed 定位由 CSS 控制；left/top 为像素坐标；衣服摆角用 CSS 变量
     <div
-      className={`xiaowen-bot ${dragging ? 'xiaowen-bot--dragging' : ''} ${inertiaSpin ? 'xiaowen-bot--inertia' : ''} ${dizzy ? 'xiaowen-bot--dizzy' : ''} ${peekSide === 'left' ? 'xiaowen-bot--peek-left' : ''} ${peekSide === 'right' ? 'xiaowen-bot--peek-right' : ''}`}
+      className={stateClass}
       ref={rootRef}
       style={{
         left: pos.x,
@@ -469,180 +728,43 @@ export default function XiaowenBot() {
       }}
       aria-hidden="true"
     >
+      {showBubble && (
+        <div className="xiaowen-bot__bubble" role="status">
+          {bubbleText}
+          <span className="xiaowen-bot__bubble-tip" />
+        </div>
+      )}
+
+      {isSpeaking && (
+        <div className="xiaowen-bot__voice-wave" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <span key={i} />
+          ))}
+        </div>
+      )}
+
       <div
         ref={cardRef}
-        className={`xiaowen-bot__card xiaowen-bot__card--${mood}${dragging ? ' xiaowen-bot__card--grabbed' : ''}${peekSide !== 'none' ? ' xiaowen-bot__card--peek' : ''}`}
+        className={cardClass}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onLostPointerCapture={endDrag}
-        title="拖拽移动；靠边静置约 5 秒会探头；甩出去会转晕落底边再缓过来"
+        onClick={handleClick}
+        title="拖拽移动 | 点击唤醒语音 | 靠边会探头"
       >
+        <span className="xiaowen-bot__badge">AI</span>
         <div className="xiaowen-bot__figure">
-        <svg className="xiaowen-bot__svg" viewBox="0 0 120 140" preserveAspectRatio="xMidYMid meet">
-          {/* 渐变与轻微模糊滤镜 */}
-          <defs>
-            <linearGradient id="xiaowen-bot-body" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#5eead4" />
-              <stop offset="55%" stopColor="#14b8a6" />
-              <stop offset="100%" stopColor="#0f766e" />
-            </linearGradient>
-            <linearGradient id="xiaowen-bot-face" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fffefb" />
-              <stop offset="100%" stopColor="#e6f7f4" />
-            </linearGradient>
-            <filter id="xiaowen-bot-soft" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* 身体、脸部、耳朵 */}
-          <ellipse cx="60" cy="118" rx="44" ry="18" fill="rgba(20, 184, 166, 0.16)" />
-          <ellipse cx="60" cy="92" rx="46" ry="42" fill="url(#xiaowen-bot-body)" stroke="#0f5f56" strokeWidth="1.2" />
-
-          <ellipse cx="60" cy="58" rx="40" ry="36" fill="url(#xiaowen-bot-face)" stroke="#99f6e4" strokeWidth="1.4" />
-
-          <circle cx="22" cy="54" r="9" fill="#5eead4" stroke="#0d9488" strokeWidth="1" />
-          <circle cx="98" cy="54" r="9" fill="#5eead4" stroke="#0d9488" strokeWidth="1" />
-
-          <ellipse
-            cx="43"
-            cy="54"
-            rx="11"
-            ry={blink ? 1.4 : 13}
-            fill="#fff"
-            stroke="#a7f3d0"
-            strokeWidth="1"
-            className="xiaowen-bot__eyelid"
+          <SpaceRobotSvg
+            uid={uid}
+            blink={blink}
+            pupil={pupil}
+            inertiaSpin={inertiaSpin}
+            dizzy={dizzy}
+            dragging={dragging}
+            peekSide={peekSide}
           />
-          {!blink && (
-            <g transform={`translate(${43 + pupil.ox}, ${54 + pupil.oy})`} className="xiaowen-bot__pupil-mount">
-              {inertiaSpin || dizzy ? (
-                <g className="xiaowen-bot__pupil-orbit">
-                  <circle r="6.8" cx="0" cy="0" fill="#e8eef7" stroke="#94a3b8" strokeWidth="0.65" className="xiaowen-bot__pupil-sclera" />
-                  {/* 略偏心，绕中心转时像眼珠在眼窝里打滚 */}
-                  <circle className="xiaowen-bot__pupil-dazed" r="3.1" cx="1.6" cy="-0.4" fill="#475569" />
-                </g>
-              ) : (
-                <circle r="5.2" cx="0" cy="0" fill="#134e4a" className="xiaowen-bot__pupil" />
-              )}
-            </g>
-          )}
-          <ellipse
-            cx="77"
-            cy="54"
-            rx="11"
-            ry={blink ? 1.4 : 13}
-            fill="#fff"
-            stroke="#a7f3d0"
-            strokeWidth="1"
-            className="xiaowen-bot__eyelid"
-          />
-          {!blink && (
-            <g transform={`translate(${77 + pupil.ox}, ${54 + pupil.oy})`} className="xiaowen-bot__pupil-mount">
-              {inertiaSpin || dizzy ? (
-                <g className="xiaowen-bot__pupil-orbit">
-                  <circle r="6.8" cx="0" cy="0" fill="#e8eef7" stroke="#94a3b8" strokeWidth="0.65" className="xiaowen-bot__pupil-sclera" />
-                  <circle className="xiaowen-bot__pupil-dazed" r="3.1" cx="1.6" cy="-0.4" fill="#475569" />
-                </g>
-              ) : (
-                <circle r="5.2" cx="0" cy="0" fill="#134e4a" className="xiaowen-bot__pupil" />
-              )}
-            </g>
-          )}
-
-          {/* 眉毛、嘴（仅当前 mood 对应 path 在 CSS 中 display:block） */}
-          <path
-            className="xiaowen-bot__brow xiaowen-bot__brow--l"
-            d="M32 38 Q43 34 54 38"
-            fill="none"
-            stroke="#0d9488"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-          <path
-            className="xiaowen-bot__brow xiaowen-bot__brow--r"
-            d="M66 38 Q77 34 88 38"
-            fill="none"
-            stroke="#0d9488"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--neutral" d="M44 74 Q60 82 76 74" fill="none" stroke="#115e59" strokeWidth="2.4" strokeLinecap="round" />
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--happy" d="M42 76 Q60 92 78 76" fill="none" stroke="#115e59" strokeWidth="2.6" strokeLinecap="round" />
-          <path className="xiaowen-bot__mouth xiaowen-bot__mouth--curious" d="M52 78 Q60 84 68 76" fill="none" stroke="#115e59" strokeWidth="2.4" strokeLinecap="round" />
-          <line className="xiaowen-bot__mouth xiaowen-bot__mouth--sleepy" x1="46" y1="80" x2="74" y2="80" stroke="#115e59" strokeWidth="2.2" strokeLinecap="round" />
-          <ellipse className="xiaowen-bot__mouth xiaowen-bot__mouth--surprised" cx="60" cy="78" rx="6" ry="8" fill="none" stroke="#115e59" strokeWidth="2.2" />
-          <path
-            className="xiaowen-bot__mouth xiaowen-bot__mouth--grabbed"
-            d="M 46 80 Q 60 70 74 80"
-            fill="none"
-            stroke="#115e59"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-          />
-          {/* 靠边探头：抿嘴好奇 */}
-          <ellipse
-            className="xiaowen-bot__mouth xiaowen-bot__mouth--peek"
-            cx="60"
-            cy="79"
-            rx="5"
-            ry="3.5"
-            fill="none"
-            stroke="#115e59"
-            strokeWidth="2"
-          />
-
-          {/* 西服：衬衫 V 字、领带、深色驳领外套；抓取时整组 CSS 摆动 */}
-          <g className="xiaowen-bot__clothes">
-            <path
-              d="M 52 78 L 60 96 L 68 78 L 64 82 L 60 92 L 56 82 Z"
-              fill="#f1f5f9"
-              stroke="#94a3b8"
-              strokeWidth="0.75"
-              strokeLinejoin="round"
-            />
-            <path d="M 58 82 L 62 82 L 60 102 Z" fill="#b91c1c" />
-            <rect x="57.5" y="80" width="5" height="7" rx="0.8" fill="#991b1b" />
-            <path
-              className="xiaowen-bot__suit-lapel"
-              d="M 38 84 L 33 116 Q 56 128 59 108 L 56 84 Q 48 80 38 84 Z"
-              fill="#1e293b"
-              stroke="#0f172a"
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-            <path
-              className="xiaowen-bot__suit-lapel"
-              d="M 82 84 L 87 116 Q 64 128 61 108 L 64 84 Q 72 80 82 84 Z"
-              fill="#1e293b"
-              stroke="#0f172a"
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M 48 76 L 54 72 L 60 76 L 66 72 L 72 76"
-              fill="none"
-              stroke="#334155"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </g>
-
-          <ellipse cx="28" cy="64" rx="7" ry="4" fill="rgba(20, 184, 166, 0.22)" />
-          <ellipse cx="92" cy="64" rx="7" ry="4" fill="rgba(20, 184, 166, 0.22)" />
-
-          <line x1="60" y1="22" x2="60" y2="8" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx="60" cy="6" r="5" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1" filter="url(#xiaowen-bot-soft)" />
-        </svg>
-        <span className="xiaowen-bot__label">小文</span>
         </div>
       </div>
     </div>

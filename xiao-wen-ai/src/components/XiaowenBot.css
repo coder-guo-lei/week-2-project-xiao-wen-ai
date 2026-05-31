@@ -1,331 +1,534 @@
-/* XiaowenBot.css — fixed 吉祥物、拖拽态、SVG 脸与多 mood 嘴型 */
-/* 外层不占交互，仅卡片可拖 */
+/* XiaowenBot — 太空机器人 + 星环（对齐参考图） */
+
 .xiaowen-bot {
   position: fixed;
   z-index: 60;
   pointer-events: none;
-  width: 112px;
+  width: 140px;
   user-select: none;
   touch-action: none;
 }
 
+/* ── 消息气泡 ── */
+.xiaowen-bot__bubble {
+  position: absolute;
+  top: -52px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(248, 250, 252, 0.96);
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
+  box-shadow:
+    0 8px 24px rgba(34, 211, 238, 0.2),
+    0 0 0 1px rgba(124, 92, 252, 0.15);
+  white-space: nowrap;
+  z-index: 4;
+  pointer-events: none;
+  animation: xw-bubble-in 0.28s ease;
+}
+
+.xiaowen-bot__bubble-tip {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(248, 250, 252, 0.96);
+}
+
+@keyframes xw-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── 语音波形 ── */
+.xiaowen-bot__voice-wave {
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 22px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.xiaowen-bot__voice-wave span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #22d3ee, var(--brand-purple));
+  animation: xw-wave 0.75s ease-in-out infinite alternate;
+}
+
+.xiaowen-bot__voice-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.xiaowen-bot__voice-wave span:nth-child(2) { height: 10px; animation-delay: 0.08s; }
+.xiaowen-bot__voice-wave span:nth-child(3) { height: 14px; animation-delay: 0.16s; }
+.xiaowen-bot__voice-wave span:nth-child(4) { height: 18px; animation-delay: 0.24s; }
+.xiaowen-bot__voice-wave span:nth-child(5) { height: 14px; animation-delay: 0.16s; }
+.xiaowen-bot__voice-wave span:nth-child(6) { height: 10px; animation-delay: 0.08s; }
+.xiaowen-bot__voice-wave span:nth-child(7) { height: 6px; animation-delay: 0s; }
+
+@keyframes xw-wave {
+  from { transform: scaleY(0.55); opacity: 0.65; }
+  to { transform: scaleY(1.35); opacity: 1; }
+}
+
+/* ── 幽灵底座（几乎无框，角色为主体） ── */
 .xiaowen-bot__card {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  padding: 4px 2px 2px;
   pointer-events: auto;
   cursor: grab;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  box-shadow: none;
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+  animation: xw-idle-float 4.5s ease-in-out infinite;
 }
 
-/* 包住 SVG + 标签：惯性时整身旋转，晕眩时左右晃 */
+@keyframes xw-idle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.xiaowen-bot--dragging .xiaowen-bot__card,
+.xiaowen-bot--inertia .xiaowen-bot__card,
+.xiaowen-bot--dizzy .xiaowen-bot__card,
+.xiaowen-bot--speaking .xiaowen-bot__card,
+.xiaowen-bot__card--grabbed {
+  animation: none;
+}
+
+.xiaowen-bot__card:hover:not(.xiaowen-bot__card--grabbed) {
+  background: rgba(15, 23, 42, 0.28);
+  border-color: rgba(34, 211, 238, 0.12);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(34, 211, 238, 0.12);
+}
+
+.xiaowen-bot__badge {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  z-index: 3;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, #22d3ee, var(--brand-purple));
+  box-shadow: 0 2px 12px rgba(34, 211, 238, 0.35);
+  pointer-events: none;
+}
+
 .xiaowen-bot__figure {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  transform-origin: 50% 45%;
+  gap: 2px;
+  transform-origin: 50% 48%;
   will-change: transform;
 }
 
-.xiaowen-bot__clothes {
-  transform-origin: 60px 96px;
+/* ── SVG 机器人 ── */
+.xiaowen-bot__svg {
+  width: 136px;
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 14px 32px rgba(124, 92, 252, 0.4))
+    drop-shadow(0 0 20px rgba(34, 211, 238, 0.15));
+}
+
+/* 星环：后层慢转，前层快转 + 虚线流动 */
+.xiaowen-bot__rings {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.xiaowen-bot__rings--back {
+  animation: xw-rings-spin 14s linear infinite;
+  opacity: 0.85;
+}
+
+.xiaowen-bot__rings--front {
+  animation: xw-rings-spin 9s linear infinite reverse;
+}
+
+.xiaowen-bot--speaking .xiaowen-bot__rings--back {
+  animation-duration: 5s;
+}
+
+.xiaowen-bot--speaking .xiaowen-bot__rings--front {
+  animation-duration: 2.8s;
+}
+
+@keyframes xw-rings-spin {
+  to { transform: rotate(360deg); }
+}
+
+.xiaowen-bot__ring-dash {
+  animation: xw-ring-dash 1.6s linear infinite;
+}
+
+@keyframes xw-ring-dash {
+  to { stroke-dashoffset: -34; }
+}
+
+/* 电路 / 耳罩 / 核心呼吸 */
+.xiaowen-bot__circuit {
+  animation: xw-circuit-pulse 2.4s ease-in-out infinite;
+}
+
+.xiaowen-bot__pulse {
+  animation: xw-pulse-flow 1.8s ease-in-out infinite;
+}
+
+.xiaowen-bot__pulse--r {
+  animation-delay: 0.4s;
+}
+
+@keyframes xw-pulse-flow {
+  0%, 100% { opacity: 0.45; stroke-dashoffset: 0; }
+  50% { opacity: 1; stroke-dashoffset: 4; }
+}
+
+.xiaowen-bot__forehead-strip {
+  animation: xw-forehead-glow 2s ease-in-out infinite;
+}
+
+@keyframes xw-forehead-glow {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+.xiaowen-bot__limb--arm-l ellipse:nth-child(2),
+.xiaowen-bot__limb--arm-r ellipse:nth-child(2) {
+  animation: xw-cuff-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes xw-cuff-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 浮空手/脚微动 */
+.xiaowen-bot__limb--arm-l {
+  animation: xw-limb-float-l 3.2s ease-in-out infinite;
+  transform-origin: 20px 101px;
+}
+
+.xiaowen-bot__limb--arm-r {
+  animation: xw-limb-float-r 3.2s ease-in-out infinite 0.5s;
+  transform-origin: 120px 101px;
+}
+
+.xiaowen-bot__limb--leg-l {
+  animation: xw-limb-float-l 3.6s ease-in-out infinite 0.25s;
+  transform-origin: 50px 136px;
+}
+
+.xiaowen-bot__limb--leg-r {
+  animation: xw-limb-float-r 3.6s ease-in-out infinite 0.75s;
+  transform-origin: 90px 136px;
+}
+
+@keyframes xw-limb-float-l {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-2px, -3px); }
+}
+
+@keyframes xw-limb-float-r {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2px, -3px); }
+}
+
+.xiaowen-bot--speaking .xiaowen-bot__pulse {
+  animation-duration: 0.9s;
+}
+
+.xiaowen-bot--speaking .xiaowen-bot__forehead-strip {
+  animation-duration: 0.6s;
+}
+
+@keyframes xw-circuit-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.xiaowen-bot__ear > :nth-child(3),
+.xiaowen-bot__ear > :nth-child(8) {
+  animation: xw-ear-glow 2s ease-in-out infinite;
+}
+
+/* ── 面罩呼吸发光 ── */
+.xiaowen-bot__helmet {
+  animation: xw-helmet-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes xw-helmet-breathe {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(34,211,238,0.15)); }
+  50% { filter: drop-shadow(0 0 14px rgba(167,139,250,0.3)); }
+}
+
+@keyframes xw-ear-glow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.xiaowen-bot__core circle:nth-child(4) {
+  animation: xw-core-pulse 2.2s ease-in-out infinite;
+}
+
+.xiaowen-bot--speaking .xiaowen-bot__core circle:nth-child(4) {
+  animation: xw-core-speak 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes xw-core-pulse {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+@keyframes xw-core-speak {
+  from { transform: scale(0.92); }
+  to { transform: scale(1.12); }
+}
+
+.xiaowen-bot__body {
+  transform-origin: 70px 90px;
   transform-box: fill-box;
   transition: transform 0.08s ease-out;
 }
 
-/* 拖拽：西服被抓着来回扯（方向随 --cloth-pull-x/y） */
-.xiaowen-bot--dragging .xiaowen-bot__clothes {
-  animation: xiaowen-clothes-grab 0.36s ease-in-out infinite alternate;
+.xiaowen-bot__joint {
+  animation: xw-joint-pulse 2.6s ease-in-out infinite;
 }
 
-/* 抓住时：整个人略下沉、低头感；与 mood 的 transform 由更高优先级覆盖 */
+@keyframes xw-joint-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.xiaowen-bot__antenna-tip {
+  animation: xw-antenna-glow 2s ease-in-out infinite;
+}
+
+@keyframes xw-antenna-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5)); }
+  50% { filter: drop-shadow(0 0 12px rgba(124, 92, 252, 0.85)); }
+}
+
+.xiaowen-bot__eye-mount {
+  transition: transform 0.06s linear;
+}
+
+.xiaowen-bot__eyelid {
+  transition: ry 0.08s ease;
+}
+
+/* ── 说话晃动 ── */
+.xiaowen-bot--speaking .xiaowen-bot__figure {
+  animation: xw-speak-shake 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes xw-speak-shake {
+  from { transform: rotate(-2deg); }
+  to { transform: rotate(2deg); }
+}
+
+/* ── 拖拽 ── */
+.xiaowen-bot--dragging .xiaowen-bot__body {
+  animation: xw-body-grab 0.36s ease-in-out infinite alternate;
+}
+
+@keyframes xw-body-grab {
+  0% {
+    transform: rotate(calc(var(--cloth-pull-x, 0) * 0.15deg))
+      translateX(calc(var(--cloth-pull-x, 0) * 0.05px));
+  }
+  100% {
+    transform: rotate(calc(var(--cloth-pull-x, 0) * -0.2deg - 3deg))
+      translateX(calc(var(--cloth-pull-x, 0) * -0.03px)) translateY(3px);
+  }
+}
+
 .xiaowen-bot__card.xiaowen-bot__card--grabbed {
-  transform: scale(1.06) translateY(14px) rotate(6deg) !important;
+  transform: scale(1.05) translateY(10px) rotate(5deg) !important;
   transition: none;
   opacity: 0.98;
+  background: rgba(15, 23, 42, 0.35);
+  box-shadow: 0 16px 40px rgba(34, 211, 238, 0.2);
 }
 
 .xiaowen-bot--dragging .xiaowen-bot__svg {
-  transform: translateY(5px) rotate(2deg);
-  transform-origin: 50% 40%;
-  transition: transform 0.12s ease-out;
-}
-
-.xiaowen-bot__card--grabbed .xiaowen-bot__svg {
-  animation: none;
+  transform: translateY(4px) rotate(2deg);
+  transform-origin: 50% 42%;
 }
 
 .xiaowen-bot__card--grabbed .xiaowen-bot__brow--l {
-  transform: rotate(22deg) translate(1px, 5px) !important;
+  transform: rotate(20deg) translate(1px, 4px) !important;
 }
 
 .xiaowen-bot__card--grabbed .xiaowen-bot__brow--r {
-  transform: rotate(-22deg) translate(-1px, 5px) !important;
+  transform: rotate(-20deg) translate(-1px, 4px) !important;
 }
 
-/* 迷糊眼：眼白 + 偏心瞳孔放在 orbit 组内，整组旋转 = 眼珠在打转 */
+/* ── 晕眩 / 惯性 ── */
 .xiaowen-bot__pupil-orbit {
   transform-origin: 0 0;
 }
 
 .xiaowen-bot--inertia .xiaowen-bot__pupil-orbit {
-  animation: xiaowen-pupil-orbit-spin 0.22s linear infinite;
+  animation: xw-pupil-orbit-spin 0.22s linear infinite;
 }
 
 .xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit {
-  animation: xiaowen-pupil-orbit-spin 0.48s linear infinite;
+  animation: xw-pupil-orbit-spin 0.48s linear infinite;
 }
 
-@keyframes xiaowen-pupil-orbit-spin {
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes xw-pupil-orbit-spin {
+  to { transform: rotate(360deg); }
 }
 
-/* 内点反向慢转一点，更像「晕」而不是整块色块在转 */
 .xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
 .xiaowen-bot--dizzy .xiaowen-bot__pupil-dazed {
-  transform-origin: 1.6px -0.4px;
-  animation: xiaowen-pupil-inner-counter 0.36s linear infinite reverse;
+  transform-origin: 3px -1px;
+  animation: xw-pupil-inner-counter 0.36s linear infinite reverse;
 }
 
-@keyframes xiaowen-pupil-inner-counter {
-  to {
-    transform: rotate(-360deg);
-  }
+@keyframes xw-pupil-inner-counter {
+  to { transform: rotate(-360deg); }
 }
 
-.xiaowen-bot--inertia .xiaowen-bot__pupil-sclera,
-.xiaowen-bot--dizzy .xiaowen-bot__pupil-sclera {
-  filter: blur(0.2px);
-}
-
-@keyframes xiaowen-clothes-grab {
-  0% {
-    transform: rotate(calc(var(--cloth-pull-x, 0) * 0.18deg)) translateX(calc(var(--cloth-pull-x, 0) * 0.06px)) translateY(0);
-  }
-  100% {
-    transform: rotate(calc(var(--cloth-pull-x, 0) * -0.22deg - 4deg)) translateX(calc(var(--cloth-pull-x, 0) * -0.04px)) translateY(4px);
-  }
-}
-
-/* 惯性飞出：整身快速旋转，像被甩晕 */
 .xiaowen-bot--inertia .xiaowen-bot__figure {
-  animation: xiaowen-figure-spin 0.1s linear infinite;
+  animation: xw-figure-spin 0.1s linear infinite;
 }
 
-@keyframes xiaowen-figure-spin {
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes xw-figure-spin {
+  to { transform: rotate(360deg); }
 }
 
-/* 停下后晕一会：慢晃 + 轻微眩晕感 */
 .xiaowen-bot--dizzy .xiaowen-bot__figure {
-  animation: xiaowen-figure-dizzy 0.38s ease-in-out infinite;
+  animation: xw-figure-dizzy 0.38s ease-in-out infinite;
 }
 
-@keyframes xiaowen-figure-dizzy {
-  0%,
-  100% {
-    transform: rotate(-7deg) translateX(-2px);
-  }
-  50% {
-    transform: rotate(7deg) translateX(2px);
-  }
+@keyframes xw-figure-dizzy {
+  0%, 100% { transform: rotate(-7deg) translateX(-2px); }
+  50% { transform: rotate(7deg) translateX(2px); }
 }
 
 .xiaowen-bot--dizzy .xiaowen-bot__svg {
-  filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.28)) blur(0.35px);
+  filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.45));
 }
 
-/* ========== 靠边探头：缩进屏幕只露一部分 + 微幅伸缩 ========== */
+/* ── 靠边探头 ── */
 .xiaowen-bot--peek-left,
 .xiaowen-bot--peek-right {
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 .xiaowen-bot--peek-left .xiaowen-bot__figure {
   transform-origin: 72% 32%;
-  animation: xiaowen-peek-nudge-left 2.1s ease-in-out infinite;
+  animation: xw-peek-left 2.1s ease-in-out infinite;
 }
 
 .xiaowen-bot--peek-right .xiaowen-bot__figure {
   transform-origin: 28% 32%;
-  animation: xiaowen-peek-nudge-right 2.1s ease-in-out infinite;
+  animation: xw-peek-right 2.1s ease-in-out infinite;
 }
 
-@keyframes xiaowen-peek-nudge-left {
-  0%,
-  100% {
-    transform: translateX(-66px) translateY(5px);
-  }
-  50% {
-    transform: translateX(-54px) translateY(2px);
-  }
+@keyframes xw-peek-left {
+  0%, 100% { transform: translateX(-68px) translateY(5px); }
+  50% { transform: translateX(-56px) translateY(2px); }
 }
 
-@keyframes xiaowen-peek-nudge-right {
-  0%,
-  100% {
-    transform: translateX(66px) translateY(5px);
-  }
-  50% {
-    transform: translateX(54px) translateY(2px);
-  }
+@keyframes xw-peek-right {
+  0%, 100% { transform: translateX(68px) translateY(5px); }
+  50% { transform: translateX(56px) translateY(2px); }
 }
 
-/* 探头时弱化随机 mood 的整卡旋转，略低头躲藏 */
 .xiaowen-bot__card--peek.xiaowen-bot__card--curious,
 .xiaowen-bot__card--peek.xiaowen-bot__card--sleepy,
 .xiaowen-bot__card--peek.xiaowen-bot__card--surprised,
 .xiaowen-bot__card--peek.xiaowen-bot__card--happy {
-  transform: translateY(10px) scale(1.05) rotate(0deg) !important;
+  transform: translateY(10px) scale(1.04) rotate(0deg) !important;
   opacity: 1 !important;
 }
 
 .xiaowen-bot--peek-left .xiaowen-bot__card--peek {
-  transform: translateY(10px) rotate(-7deg) scale(1.06) !important;
+  transform: translateY(10px) rotate(-6deg) scale(1.05) !important;
 }
 
 .xiaowen-bot--peek-right .xiaowen-bot__card--peek {
-  transform: translateY(10px) rotate(7deg) scale(1.06) !important;
+  transform: translateY(10px) rotate(6deg) scale(1.05) !important;
 }
 
 .xiaowen-bot__card--peek .xiaowen-bot__svg {
   animation: none !important;
 }
 
-/* 探头眉：一高一挑 */
 .xiaowen-bot__card--peek .xiaowen-bot__brow--l {
-  transform: rotate(-16deg) translate(-2px, -3px) !important;
+  transform: rotate(-14deg) translate(-2px, -2px) !important;
 }
 
 .xiaowen-bot__card--peek .xiaowen-bot__brow--r {
-  transform: rotate(18deg) translate(2px, -6px) !important;
+  transform: rotate(16deg) translate(2px, -5px) !important;
 }
 
-/* 眼珠朝屏幕内侧瞄 */
-.xiaowen-bot--peek-left .xiaowen-bot__svg .xiaowen-bot__pupil-mount .xiaowen-bot__pupil {
-  transform: translate(5px, -1px);
+.xiaowen-bot--peek-left .xiaowen-bot__eye-inner .xiaowen-bot__pupil {
+  transform: translate(4px, -1px);
   transform-box: fill-box;
   transform-origin: center;
 }
 
-.xiaowen-bot--peek-right .xiaowen-bot__svg .xiaowen-bot__pupil-mount .xiaowen-bot__pupil {
-  transform: translate(-5px, -1px);
+.xiaowen-bot--peek-right .xiaowen-bot__eye-inner .xiaowen-bot__pupil {
+  transform: translate(-4px, -1px);
   transform-box: fill-box;
   transform-origin: center;
-}
-
-.xiaowen-bot--peek-left .xiaowen-bot__label,
-.xiaowen-bot--peek-right .xiaowen-bot__label {
-  opacity: 0.4;
-  transform: scale(0.82);
-  letter-spacing: 0.12em;
 }
 
 .xiaowen-bot--dragging .xiaowen-bot__card:not(.xiaowen-bot__card--grabbed) {
   cursor: grabbing;
   transition: none;
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .xiaowen-bot--dragging .xiaowen-bot__card:not(.xiaowen-bot__card--grabbed) {
-    transform: none;
-  }
-  .xiaowen-bot__card--grabbed {
-    transform: none !important;
-    opacity: 1;
-  }
-  .xiaowen-bot--dragging .xiaowen-bot__svg {
-    transform: none;
-  }
-  .xiaowen-bot--dragging .xiaowen-bot__clothes {
-    animation: none;
-  }
-  .xiaowen-bot--inertia .xiaowen-bot__figure,
-  .xiaowen-bot--dizzy .xiaowen-bot__figure {
-    animation: none;
-  }
-  .xiaowen-bot--dizzy .xiaowen-bot__svg {
-    filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.28));
-  }
-  .xiaowen-bot--inertia .xiaowen-bot__pupil-orbit,
-  .xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit,
-  .xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
-  .xiaowen-bot--dizzy .xiaowen-bot__pupil-dazed {
-    animation: none;
-  }
-  .xiaowen-bot--peek-left .xiaowen-bot__figure,
-  .xiaowen-bot--peek-right .xiaowen-bot__figure {
-    animation: none;
-  }
-  .xiaowen-bot--peek-left .xiaowen-bot__figure {
-    transform: translateX(-60px) translateY(4px);
-  }
-  .xiaowen-bot--peek-right .xiaowen-bot__figure {
-    transform: translateX(60px) translateY(4px);
-  }
-}
-
-.xiaowen-bot__card--happy .xiaowen-bot__svg {
-  animation: xiaowen-bot-nod 0.65s ease;
-}
-
-@keyframes xiaowen-bot-nod {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  40% { transform: translateY(2px) rotate(-4deg); }
-  70% { transform: translateY(0) rotate(3deg); }
-}
-
-.xiaowen-bot__card--curious {
-  transform: rotate(-6deg);
-}
-
-.xiaowen-bot__card--sleepy {
-  transform: translateY(3px) rotate(2deg);
-  opacity: 0.92;
-}
-
-.xiaowen-bot__card--surprised {
-  transform: scale(1.06);
-}
-
-.xiaowen-bot__svg {
-  width: 112px;
-  height: auto;
-  display: block;
-  filter: drop-shadow(0 14px 28px rgba(15, 118, 110, 0.26));
-}
-
-.xiaowen-bot__pupil {
-  transition: cx 0.06s linear, cy 0.06s linear;
-}
-
-.xiaowen-bot__eyelid {
-  transition: ry 0.07s ease;
-}
-
-/* 默认只显示 neutral 嘴 */
+/* ── 表情 ── */
 .xiaowen-bot__mouth {
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.22s ease;
 }
 
-.xiaowen-bot__mouth--neutral {
-  opacity: 1;
-}
+.xiaowen-bot__mouth--neutral { opacity: 1; }
+.xiaowen-bot__mouth--grabbed { opacity: 0; }
 
-.xiaowen-bot__mouth--grabbed {
-  opacity: 0;
-}
-
-/* 抓住时只显示「被拎起」嘴型，隐藏其它 mood 嘴 */
 .xiaowen-bot__card--grabbed .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--grabbed) {
   opacity: 0 !important;
 }
@@ -334,11 +537,8 @@
   opacity: 1 !important;
 }
 
-.xiaowen-bot__mouth--peek {
-  opacity: 0;
-}
+.xiaowen-bot__mouth--peek { opacity: 0; }
 
-/* 探头专用嘴（椭圆好奇），盖住 mood 嘴 */
 .xiaowen-bot__card--peek .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--peek) {
   opacity: 0 !important;
 }
@@ -354,52 +554,116 @@
   opacity: 0;
 }
 
-.xiaowen-bot__card--happy .xiaowen-bot__mouth--happy {
-  opacity: 1;
+.xiaowen-bot__card--happy .xiaowen-bot__mouth--happy { opacity: 1; }
+.xiaowen-bot__card--curious .xiaowen-bot__mouth--curious { opacity: 1; }
+.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--sleepy { opacity: 1; }
+.xiaowen-bot__card--surprised .xiaowen-bot__mouth--surprised { opacity: 1; }
+
+.xiaowen-bot__card--happy .xiaowen-bot__svg {
+  animation: xw-nod 0.65s ease;
 }
 
-.xiaowen-bot__card--curious .xiaowen-bot__mouth--curious {
-  opacity: 1;
+@keyframes xw-nod {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(3px); }
+  70% { transform: translateY(-2px); }
 }
 
-.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--sleepy {
-  opacity: 1;
+.xiaowen-bot__card--curious {
+  transform: rotate(-5deg);
 }
 
-.xiaowen-bot__card--surprised .xiaowen-bot__mouth--surprised {
-  opacity: 1;
+.xiaowen-bot__card--sleepy {
+  transform: translateY(3px) rotate(2deg);
+  opacity: 0.9;
 }
 
-/* 眉毛微调 */
-.xiaowen-bot__card--curious .xiaowen-bot__brow--r {
-  transform: translateY(-3px);
-}
-
-.xiaowen-bot__card--sleepy .xiaowen-bot__brow--l,
-.xiaowen-bot__card--sleepy .xiaowen-bot__brow--r {
-  transform: translateY(2px);
+.xiaowen-bot__card--surprised {
+  transform: scale(1.05);
 }
 
 .xiaowen-bot__brow--l,
 .xiaowen-bot__brow--r {
-  transition: transform 0.25s ease;
+  transition: transform 0.22s ease;
   transform-origin: center;
 }
 
-.xiaowen-bot__label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  opacity: 0.85;
+.xiaowen-bot--speaking .xiaowen-bot__svg {
+  filter:
+    drop-shadow(0 14px 32px rgba(124, 92, 252, 0.45))
+    drop-shadow(0 0 28px rgba(34, 211, 238, 0.35));
 }
 
+/* ── 减少动效 ── */
 @media (prefers-reduced-motion: reduce) {
   .xiaowen-bot__card,
-  .xiaowen-bot__pupil {
+  .xiaowen-bot__rings--back,
+  .xiaowen-bot__rings--front,
+  .xiaowen-bot__circuit,
+  .xiaowen-bot__pulse,
+  .xiaowen-bot__forehead-strip,
+  .xiaowen-bot__limb--arm-l ellipse:nth-child(2),
+  .xiaowen-bot__limb--arm-r ellipse:nth-child(2),
+  .xiaowen-bot__limb--arm-l,
+  .xiaowen-bot__limb--arm-r,
+  .xiaowen-bot__limb--leg-l,
+  .xiaowen-bot__limb--leg-r,
+  .xiaowen-bot__joint,
+  .xiaowen-bot__ear > :nth-child(3),
+  .xiaowen-bot__ear > :nth-child(8),
+  .xiaowen-bot__helmet,
+  .xiaowen-bot__core circle:nth-child(4),
+  .xiaowen-bot__antenna-tip,
+  .xiaowen-bot__ring-dash,
+  .xiaowen-bot__voice-wave span {
+    animation: none !important;
+  }
+
+  .xiaowen-bot--speaking .xiaowen-bot__figure {
+    animation: none;
+  }
+
+  .xiaowen-bot--dragging .xiaowen-bot__card:not(.xiaowen-bot__card--grabbed) {
+    transform: none;
+  }
+
+  .xiaowen-bot__card--grabbed {
+    transform: none !important;
+  }
+
+  .xiaowen-bot--dragging .xiaowen-bot__svg,
+  .xiaowen-bot--dragging .xiaowen-bot__body {
+    transform: none;
+    animation: none;
+  }
+
+  .xiaowen-bot--inertia .xiaowen-bot__figure,
+  .xiaowen-bot--dizzy .xiaowen-bot__figure,
+  .xiaowen-bot--peek-left .xiaowen-bot__figure,
+  .xiaowen-bot--peek-right .xiaowen-bot__figure {
+    animation: none;
+  }
+
+  .xiaowen-bot--peek-left .xiaowen-bot__figure {
+    transform: translateX(-62px) translateY(4px);
+  }
+
+  .xiaowen-bot--peek-right .xiaowen-bot__figure {
+    transform: translateX(62px) translateY(4px);
+  }
+
+  .xiaowen-bot--inertia .xiaowen-bot__pupil-orbit,
+  .xiaowen-bot--dizzy .xiaowen-bot__pupil-orbit,
+  .xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
+  .xiaowen-bot--dizzy .xiaowen-bot__pupil-dazed {
+    animation: none;
+  }
+
+  .xiaowen-bot__card,
+  .xiaowen-bot__eye-mount {
     transition: none;
   }
+
   .xiaowen-bot__card--happy .xiaowen-bot__svg {
     animation: none;
   }
@@ -407,12 +671,16 @@
 
 @media (max-width: 720px) {
   .xiaowen-bot {
-    width: 88px;
+    width: 112px;
   }
+
   .xiaowen-bot__svg {
-    width: 88px;
+    width: 108px;
   }
-  .xiaowen-bot__label {
-    display: none;
+
+  .xiaowen-bot__bubble {
+    font-size: 11px;
+    padding: 5px 10px;
+    top: -46px;
   }
 }
