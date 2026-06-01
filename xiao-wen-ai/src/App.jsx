@@ -17,7 +17,7 @@ import { usePreferences } from './contexts/PreferencesContext'
 import './App.css'
 
 import CommandInput from './components/CommandInput'
-import LogPanel from './components/LogPanel'
+import ActivityDock from './components/ActivityDock'
 import ChatHistoryPanel from './components/ChatHistoryPanel'
 import MusicPlayer from './components/MusicPlayer'
 import WeatherCard from './components/WeatherCard'
@@ -33,6 +33,7 @@ import ChartPanel from './components/ChartPanel'
 import XiaowenBot from './components/XiaowenBot'
 import SettingsPanel from './components/SettingsPanel'
 import PreferencesGuide from './components/PreferencesGuide'
+import LoginParticleBg from './components/LoginParticleBg'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
@@ -182,7 +183,7 @@ function App() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
     }
   })
-  const [rightTab, setRightTab] = useState('log') // 'log' | 'history'
+  const [rightTab, setRightTab] = useState('log') // ActivityDock: 'log' | 'history'
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
 
@@ -666,36 +667,52 @@ function App() {
   const stageTitle = STAGE_TITLES[contentType] || STAGE_TITLES.default
 
   return (
-    <div className="app">
+    <div className="app-shell">
+      <LoginParticleBg className="app-shell-bg" ambient />
+      <div className="app">
       <SelectionToolbar />
       <XiaowenBot />
-      {/* 顶栏：产品名 */}
-      <header className="app-header">
-        <div className="app-logo">小文</div>
-        <p className="app-subtitle">智能语音助手</p>
-        <button
-          className="app-settings-btn"
-          onClick={() => setShowSettings(true)}
-          title="偏好设置"
-          aria-label="偏好设置"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-        <button
-          className="app-logout-btn"
-          onClick={() => { logout(); navigate('/login', { replace: true }) }}
-          title="退出登录"
-          aria-label="退出登录"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
+      <header className="app-topbar">
+        <div className="app-brand">
+          <div className="app-logo-icon" aria-hidden>W</div>
+          <div className="app-brand-text">
+            <span className="app-logo">小文</span>
+            <span className="app-subtitle">智能语音助手</span>
+          </div>
+        </div>
+        <ModeBar
+          variant="top"
+          mode={mode}
+          modeLabel={modeLabel}
+          worldState={worldState}
+          quickActions={quickActions}
+          onQuickAction={autoSendTask}
+        />
+        <div className="app-topbar-actions">
+          <button
+            className="app-settings-btn"
+            onClick={() => setShowSettings(true)}
+            title="偏好设置"
+            aria-label="偏好设置"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          <button
+            className="app-logout-btn"
+            onClick={() => { logout(); navigate('/login', { replace: true }) }}
+            title="退出登录"
+            aria-label="退出登录"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <div className="app-workspace">
@@ -768,28 +785,15 @@ function App() {
           </div>
         </section>
 
-        {/* right — 运行日志 / 对话历史 */}
-        <main className="panel panel--right">
-          <div className="right-tabs">
-            <button
-              className={`right-tab ${rightTab === 'log' ? 'active' : ''}`}
-              onClick={() => setRightTab('log')}
-            >
-              运行日志
-            </button>
-            <button
-              className={`right-tab ${rightTab === 'history' ? 'active' : ''}`}
-              onClick={() => setRightTab('history')}
-            >
-              对话历史
-            </button>
-          </div>
-          {rightTab === 'log' ? (
-            <LogPanel logs={logList} onClear={clearLogList} />
-          ) : (
-            <ChatHistoryPanel />
-          )}
-        </main>
+        <ActivityDock
+          logs={logList}
+          open={logPanelOpen}
+          onToggle={toggleLogPanel}
+          onClear={clearLogList}
+          dockTab={rightTab}
+          onDockTabChange={setRightTab}
+          historyPanel={<ChatHistoryPanel />}
+        />
       </div>
       {showGuide && (
         <PreferencesGuide
@@ -801,6 +805,7 @@ function App() {
         />
       )}
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      </div>
     </div>
   )
 }

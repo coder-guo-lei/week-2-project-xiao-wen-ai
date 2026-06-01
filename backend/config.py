@@ -94,6 +94,35 @@ MAX_KNOWLEDGE_SNIPPETS = 80
 MAX_CHAT_HISTORY_MESSAGES = 12
 MAX_CHAT_MESSAGE_CHARS = 1200
 
+# 意图分类：LLM 主判 + 规则兜底 + 进程内缓存
+INTENT_LLM_ENABLED = os.environ.get("INTENT_LLM_ENABLED", "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
+INTENT_CACHE_TTL = int(os.environ.get("INTENT_CACHE_TTL", "3600"))
+INTENT_CACHE_MAX = int(os.environ.get("INTENT_CACHE_MAX", "512"))
+INTENT_RULE_CONFIDENCE = float(os.environ.get("INTENT_RULE_CONFIDENCE", "0.85"))
+
+# 对话管理：滑动窗口 + 摘要压缩 + 状态机
+DIALOGUE_WINDOW_MESSAGES = int(os.environ.get("DIALOGUE_WINDOW_MESSAGES", "8"))
+DIALOGUE_STORE_MESSAGES = int(os.environ.get("DIALOGUE_STORE_MESSAGES", "24"))
+DIALOGUE_COMPRESS_MIN_MESSAGES = int(os.environ.get("DIALOGUE_COMPRESS_MIN_MESSAGES", "14"))
+DIALOGUE_SUMMARY_MAX_CHARS = int(os.environ.get("DIALOGUE_SUMMARY_MAX_CHARS", "1200"))
+DIALOGUE_COMPRESS_ENABLED = os.environ.get("DIALOGUE_COMPRESS_ENABLED", "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
+DIALOGUE_STATE_HINTS = os.environ.get("DIALOGUE_STATE_HINTS", "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
+
 # 文字模拟世界：长叙事时用 LLM 润色（需配置百炼或 DeepSeek）
 WORLD_SIM_LLM = os.environ.get("WORLD_SIM_LLM", "1").strip().lower() not in ("0", "false", "no", "off")
 WORLD_SIM_LLM_MIN_LEN = int(os.environ.get("WORLD_SIM_LLM_MIN_LEN", "72"))

@@ -9,14 +9,7 @@ export default function AppRouter() {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', background: '#0F172A', color: '#94a3b8', fontSize: 15
-      }}>
-        加载中...
-      </div>
-    )
+    return <div className="app-loading">加载中...</div>
   }
 
   return (
