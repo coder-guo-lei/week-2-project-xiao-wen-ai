@@ -149,7 +149,26 @@
   --shadow-panel: var(--shadow-raised);
 }
 
-/* 保持与登录页一致的深色品牌主题（不再切换为暖色浅色） */
+[data-theme="light"] {
+  --bg-deep: #f4f7fb;
+  --bg-mid: #e8eef6;
+  --bg-accent: #dce6f2;
+  --bg: var(--bg-deep);
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-raised: rgba(255, 255, 255, 0.95);
+  --surface-sunken: #eef2f7;
+  --border: rgba(15, 23, 42, 0.12);
+  --border-soft: rgba(15, 23, 42, 0.06);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-placeholder: #94a3b8;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(15, 23, 42, 0.1);
+  --glass-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --tool-card-bg: rgba(255, 255, 255, 0.7);
+  --tool-inner-bg: rgba(244, 247, 251, 0.9);
+}
 
 html {
   font-size: 16px;
@@ -170,6 +189,15 @@ body {
   background-attachment: fixed;
   line-height: 1.75;
   min-height: 100vh;
+}
+
+[data-theme="light"] body {
+  background-image: linear-gradient(
+    135deg,
+    var(--bg-deep) 0%,
+    var(--bg-mid) 50%,
+    var(--bg-accent) 100%
+  );
 }
 
 #root {

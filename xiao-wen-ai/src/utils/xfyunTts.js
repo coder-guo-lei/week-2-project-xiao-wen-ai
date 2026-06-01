@@ -26,9 +26,14 @@ export function cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef) {
   }
 }
 
-/** @returns {string} 朗读音色键（交由 /api/tts 映射为具体 vcn） */
+/** @returns {string} 朗读音色键（优先用户偏好 Context / localStorage） */
 export function getTtsVoiceFromStorage() {
   try {
+    const raw = localStorage.getItem('xiaowen_user_preferences')
+    if (raw) {
+      const p = JSON.parse(raw)
+      if (TTS_VOICE_KEYS.has(p.ttsVoice)) return p.ttsVoice
+    }
     let t = localStorage.getItem(VOICE_PREF_KEY) || 'female'
     if (t === 'male') {
       t = 'female'

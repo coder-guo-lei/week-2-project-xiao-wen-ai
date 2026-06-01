@@ -15,6 +15,7 @@ from routes.api import api_bp
 from routes.auth import auth_bp
 from routes.logs import logs_bp
 from routes.preferences import pref_bp
+from sync_hub import sock
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ app.register_blueprint(auth_bp)  # /api/auth/* 公开
 app.register_blueprint(api_bp)   # /api/* 业务接口（需认证）
 app.register_blueprint(logs_bp)  # /api/logs 日志查询
 app.register_blueprint(pref_bp)  # /api/preferences 偏好设置
+sock.init_app(app)  # 多端 WebSocket 同步：/ws/sync
 
 # ── 启动日志 ──────────────────────────────────────────────
 logger.info(
@@ -51,4 +53,5 @@ logger.info(
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    host = os.environ.get("BACKEND_HOST", "127.0.0.1")
+    app.run(host=host, port=5001, debug=True)

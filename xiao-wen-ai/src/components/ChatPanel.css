@@ -112,10 +112,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cp-tts-voice-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  align-self: center;
+}
 .cp-tts-actions {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 .cp-tts-select {
   height: 36px;

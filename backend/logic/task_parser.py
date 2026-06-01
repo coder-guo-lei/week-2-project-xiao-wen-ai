@@ -1817,8 +1817,11 @@ def remember_chat_turn(user_text, assistant_text):
     get_dialogue_manager().record_turn(user_text, assistant_text)
 
 
-def ai_chat(query, history=None, location_hint=None, user_id=None):
+def ai_chat(query, history=None, location_hint=None, user_id=None, user_preferences=None):
+    from logic.user_preferences import build_preference_prompt_addon
+
     dm = get_dialogue_manager()
+    pref_addon = build_preference_prompt_addon(user_preferences)
     system_prompt = (
         "你是智能语音助手「小文」。用自然、口语化的中文回答，适合朗读；"
         "回答尽量控制在几句以内，除非用户明确要求长文（如详细讲故事）。"
@@ -1828,6 +1831,8 @@ def ai_chat(query, history=None, location_hint=None, user_id=None):
     state_hint = dm.state_hint_for_system()
     if state_hint:
         system_prompt += "\n\n" + state_hint
+    if pref_addon:
+        system_prompt += "\n\n【用户偏好】\n" + pref_addon
     if location_hint:
         system_prompt += "\n\n" + str(location_hint).strip()
     if user_id:
@@ -3221,11 +3226,12 @@ def with_intent_workflow(result, intent_result, *items):
     return with_workflow(result, ("识别意图", intent_workflow_label(intent_result)), *items)
 
 
-def parse_command(task, chat_history=None, client_location=None, user_id=None):
+def parse_command(task, chat_history=None, client_location=None, user_id=None, client_preferences=None):
     """统一指令路由入口：告别/世界状态 → LLM 意图分类 + 规则兜底 + 缓存 → 业务分支。
 
     client_location：前端可选 { lat, lng }（WGS84），用于当地天气与附近美食等。
     user_id：数据库用户 ID，用于注入个人偏好到 AI 对话的 system prompt 中。
+    client_preferences：前端可选偏好字典（与 DB 偏好合并注入）。
     """
     task = task.strip()
 
@@ -3574,12 +3580,23 @@ def parse_command(task, chat_history=None, client_location=None, user_id=None):
     ctx_wf = dm.context_label()
     if loc_hint:
         ctx_wf += "；已注入大致位置（逆地理地址，供回答贴近本地）"
-
-    answer, ans_meta = answer_with_kb_then_web(
-        task,
-        chat_history,
-        location_hint=loc_hint,
-        user_id=user_id,
+    return with_intent_workflow(
+        {
+            "type": "chat",
+            "msg": ai_chat(
+                task,
+                chat_history,
+                location_hint=loc_hint,
+                user_id=user_id,
+                user_preferences=client_preferences,
+            ),
+            **current_mode_payload(),
+        },
+        intent_result,
+        ("接收问题", task),
+        ("整理上下文", ctx_wf),
+        ("调用对话模型", primary_chat_model_label()),
+        ("返回回答", "展示在小文回复卡片"),
     )
     chat_payload = {
         "type": "chat",

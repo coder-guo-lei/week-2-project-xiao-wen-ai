@@ -1,0 +1,12 @@
+{
+  "appId": "com.xiaowen.assistant",
+  "appName": "小文",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -37,7 +37,11 @@ import LoginParticleBg from './components/LoginParticleBg'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
-import { apiFetch, apiUrl } from './apiBase'
+import useSyncSocket from './hooks/useSyncSocket'
+import { apiFetch } from './apiBase'
+import { platformLabel } from './platform'
+import { onThemeChange, useTheme } from './context/ThemeContext'
+import ThemeToggle from './components/ThemeToggle'
 
 // ---------- 与 localStorage 同步的键名、列表长度上限 ----------
 const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
@@ -186,16 +190,38 @@ function App() {
   const [rightTab, setRightTab] = useState('log') // ActivityDock: 'log' | 'history'
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
+  const { setModeFromSync } = useTheme()
 
-  /** 追加一条右侧日志 */
+  const { send: syncSend, connected: syncConnected } = useSyncSocket({
+    onMessage(msg) {
+      if (msg.type === 'SYNC_INIT' && msg.payload) {
+        if (Array.isArray(msg.payload.logs)) setLogList(msg.payload.logs)
+        if (typeof msg.payload.theme === 'string') setModeFromSync(msg.payload.theme)
+      } else if (msg.type === 'LOG_APPEND' && typeof msg.payload === 'string') {
+        setLogList((prev) => [...prev, msg.payload])
+      } else if (msg.type === 'LOG_CLEAR') {
+        setLogList([])
+      } else if (msg.type === 'THEME_SET' && typeof msg.payload === 'string') {
+        setModeFromSync(msg.payload)
+      }
+    },
+  })
+
+  useEffect(() => {
+    return onThemeChange((theme) => syncSend('THEME_SET', theme))
+  }, [syncSend])
+
+  /** 追加一条右侧日志（本地 + 广播其它端/标签页） */
   const addLog = useCallback((text) => {
     setLogList((prev) => [...prev, text])
-  }, [])
+    syncSend('LOG_APPEND', text)
+  }, [syncSend])
 
-  /** 清空右侧运行日志（手动按钮或语音识别成功即将发送指令时调用） */
+  /** 清空右侧运行日志 */
   const clearLogList = useCallback(() => {
     setLogList([])
-  }, [])
+    syncSend('LOG_CLEAR')
+  }, [syncSend])
 
   const toggleLogPanel = useCallback(() => setLogPanelOpen((v) => !v), [])
 
@@ -689,6 +715,7 @@ function App() {
           onQuickAction={autoSendTask}
         />
         <div className="app-topbar-actions">
+          <ThemeToggle />
           <button
             className="app-settings-btn"
             onClick={() => setShowSettings(true)}
@@ -793,6 +820,8 @@ function App() {
           dockTab={rightTab}
           onDockTabChange={setRightTab}
           historyPanel={<ChatHistoryPanel />}
+          syncConnected={syncConnected}
+          platformLabel={platformLabel}
         />
       </div>
       {showGuide && (

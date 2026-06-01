@@ -13,6 +13,8 @@ export default function ActivityDock({
   dockTab = 'log',
   onDockTabChange,
   historyPanel = null,
+  syncConnected,
+  platformLabel,
 }) {
   const lastLine = logs.length > 0 ? logs[logs.length - 1] : null
   const hasError = logs.some((line) => line.includes('❌'))
@@ -76,6 +78,8 @@ export default function ActivityDock({
               onCollapse={onToggle}
               collapseLabel="收起"
               className="lp--dock"
+              syncConnected={syncConnected}
+              platformLabel={platformLabel}
             />
           )}
         </div>

@@ -1,12 +1,22 @@
 /**
  * 后端 API 基址。
- * - 开发：默认 ''，请求 /api/* 走 Vite 代理到 5001（见 vite.config.js）
- * - 生产：默认直连本机 5001；部署到其它机器时设 VITE_API_URL 或 VITE_API_BASE（二者等价，任填其一）
+ * - Web 开发：默认 ''，走 Vite 代理
+ * - Capacitor App：用 .env.capacitor 的 VITE_API_URL，或 Android 模拟器默认 10.0.2.2:5001
  */
+import { Capacitor } from '@capacitor/core'
+
 const _fromEnv = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE
+
+function nativeApiFallback() {
+  if (Capacitor.getPlatform() === 'android') return 'http://10.0.2.2:5001'
+  return 'http://127.0.0.1:5001'
+}
+
 export const API_BASE = (_fromEnv != null && String(_fromEnv).trim() !== '')
   ? String(_fromEnv).trim().replace(/\/$/, '')
-  : (import.meta.env.DEV ? '' : 'http://127.0.0.1:5001')
+  : (Capacitor.isNativePlatform()
+    ? nativeApiFallback()
+    : (import.meta.env.DEV ? '' : 'http://127.0.0.1:5001'))
 
 export function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`
