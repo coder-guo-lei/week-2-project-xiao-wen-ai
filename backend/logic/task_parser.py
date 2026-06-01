@@ -1680,13 +1680,18 @@ def remember_chat_turn(user_text, assistant_text):
     session.CHAT_HISTORY = session.CHAT_HISTORY[-MAX_CHAT_HISTORY_MESSAGES:]
 
 
-def ai_chat(query, history=None, location_hint=None):
+def ai_chat(query, history=None, location_hint=None, user_preferences=None):
+    from logic.user_preferences import build_preference_prompt_addon
+
+    pref_addon = build_preference_prompt_addon(user_preferences)
     system_prompt = (
         "你是智能语音助手「小文」。用自然、口语化的中文回答，适合朗读；"
         "回答尽量控制在几句以内，除非用户明确要求长文（如详细讲故事）。"
         "用户可能会问各地美食、讲笑话、讲故事、闲聊等，请友好作答。\n\n"
         + current_datetime_context_for_llm()
     )
+    if pref_addon:
+        system_prompt += "\n\n【用户偏好】\n" + pref_addon
     if location_hint:
         system_prompt += "\n\n" + str(location_hint).strip()
     messages = [
@@ -3070,7 +3075,7 @@ def is_goodbye_intent(task):
     ])
 
 
-def parse_command(task, chat_history=None, client_location=None):
+def parse_command(task, chat_history=None, client_location=None, client_preferences=None):
     """统一指令路由入口。
 
     处理顺序很重要：先匹配的分支先执行。概括顺序为：
@@ -3388,6 +3393,7 @@ def parse_command(task, chat_history=None, client_location=None):
                 task,
                 normalize_chat_history(chat_history) or session.CHAT_HISTORY,
                 location_hint=loc_hint,
+                user_preferences=client_preferences,
             ),
             **current_mode_payload(),
         },

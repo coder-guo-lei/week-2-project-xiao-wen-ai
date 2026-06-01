@@ -274,7 +274,9 @@ def send_task():
         logger.info("Received task: %s", task)
         raw_loc = data.get("location")
         client_location = raw_loc if isinstance(raw_loc, dict) else None
-        res = parse_command(task, incoming_history, client_location)
+        raw_prefs = data.get("preferences")
+        client_preferences = raw_prefs if isinstance(raw_prefs, dict) else None
+        res = parse_command(task, incoming_history, client_location, client_preferences)
         if res.get("type") == "chat" and not res.get("resetUI"):
             remember_chat_turn(task, res.get("msg", ""))
 

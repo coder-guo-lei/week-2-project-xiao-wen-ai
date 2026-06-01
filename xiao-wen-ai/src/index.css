@@ -7,7 +7,8 @@
   box-sizing: border-box;
 }
 
-:root {
+:root,
+[data-theme="light"] {
   /* ═══ 主色系（石青 — 低饱和温暖版）═══ */
   --accent: #3d8a80;
   --accent-strong: #2a6e64;
@@ -137,8 +138,65 @@
   --shadow-panel: var(--shadow-raised);
 }
 
+[data-theme="dark"] {
+  --accent: #4fd1c0;
+  --accent-strong: #38b2a4;
+  --accent-soft: #7dd3c4;
+  --accent-light: #b2ede4;
+  --accent-bg: rgba(79, 209, 192, 0.1);
+  --accent-glow: rgba(79, 209, 192, 0.22);
+  --hover-bg: rgba(79, 209, 192, 0.1);
+
+  --bg: #121a17;
+  --surface: #182220;
+  --surface-raised: #1e2b28;
+  --surface-sunken: #0e1513;
+  --border: #2c3b36;
+  --border-soft: rgba(255, 255, 255, 0.05);
+
+  --text-primary: #f0eeea;
+  --text-secondary: #c8c4be;
+  --text-tertiary: #9a9590;
+  --text-on-accent: #0c1a16;
+  --text-placeholder: #6b7d76;
+
+  --success: #6dbf85;
+  --success-bg: rgba(109, 191, 133, 0.12);
+  --warning: #daa64e;
+  --warning-bg: rgba(218, 166, 78, 0.12);
+  --error: #e07070;
+  --error-bg: rgba(224, 112, 112, 0.12);
+  --info: #74aad4;
+  --info-bg: rgba(116, 170, 212, 0.12);
+
+  --shadow-raised:
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-sunken: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-accent:
+    0 2px 8px rgba(79, 209, 192, 0.15),
+    0 4px 16px rgba(79, 209, 192, 0.08);
+  --shadow-float:
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+
+  --workflow-bg-a: #0c1211;
+  --workflow-bg-b: #111a19;
+  --workflow-border: rgba(79, 209, 192, 0.22);
+  --workflow-eyebrow: #7dd3fc;
+  --workflow-step-ring: #4fd1c0;
+
+  --tool-card-bg: linear-gradient(165deg, #151c1b 0%, #1a2523 100%);
+  --tool-card-border: rgba(79, 209, 192, 0.22);
+  --tool-card-dash: rgba(79, 209, 192, 0.38);
+  --tool-inner-bg: rgba(12, 18, 17, 0.55);
+  --tool-inner-border: rgba(79, 209, 192, 0.14);
+
+  --shadow-panel: var(--shadow-raised);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --accent: #4fd1c0;
     --accent-strong: #38b2a4;
     --accent-soft: #7dd3c4;
@@ -213,7 +271,8 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
+  :root:not([data-theme="light"]) body,
+  [data-theme="dark"] body {
     background-image:
       radial-gradient(ellipse 120% 60% at 50% -10%, rgba(79, 209, 192, 0.08), transparent 50%),
       radial-gradient(ellipse 40% 35% at 0% 100%, rgba(20, 90, 80, 0.12), transparent 40%);

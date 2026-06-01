@@ -5,6 +5,26 @@
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   flex-shrink: 0; margin-bottom: 10px;
 }
+.lp-head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.lp-sync {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.lp-sync-on {
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--success-bg);
+}
+.lp-sync-off {
+  background: var(--warning);
+}
 .lp-head {
   margin: 0;
   font-size: 14px;
@@ -34,6 +54,15 @@
   border-radius: 12px; padding: 12px 14px;
   background: var(--card-bg-alt);
   font-size: 13px; line-height: 1.75;
+  position: relative;
+}
+.lp-virtual-inner {
+  position: relative;
+  width: 100%;
+}
+.lp-row {
+  word-break: break-word;
+  padding-bottom: 2px;
 }
 .lp-ok { color: var(--text-secondary); }
 .lp-err { color: #ef4444; }

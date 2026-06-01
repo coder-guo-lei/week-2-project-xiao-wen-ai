@@ -13,6 +13,44 @@
 /* header */
 .app-header {
   text-align: center;
+  position: relative;
+}
+.app-header-tools {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app-settings-btn {
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-full);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.app-settings-btn:hover {
+  border-color: var(--accent);
+  background: var(--hover-bg);
+}
+.app-settings-btn.has-reco {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+.app-settings-btn.has-reco::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warning);
 }
 .app-logo {
   display: inline-block;
@@ -25,7 +63,8 @@
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 @media (prefers-color-scheme: dark) {
-  .app-logo {
+  :root:not([data-theme="light"]) .app-logo,
+  [data-theme="dark"] .app-logo {
     color: var(--accent-soft);
     text-shadow: 0 1px 14px var(--accent-glow);
   }

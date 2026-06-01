@@ -30,13 +30,20 @@ import XiaowenBot from './components/XiaowenBot'
 
 import useMusicPlayer from './hooks/useMusicPlayer'
 import useVoiceRecognition from './hooks/useVoiceRecognition'
+import useSyncSocket from './hooks/useSyncSocket'
 import { apiUrl } from './apiBase'
+import { platformLabel } from './platform'
+import { onThemeChange, useTheme } from './context/ThemeContext'
+import { onPreferencesChange, usePreferences } from './context/PreferenceContext'
+import ThemeToggle from './components/ThemeToggle'
+import SettingsPanel, { hasVisibleRecommendations } from './components/SettingsPanel'
 
 // ---------- 与 localStorage 同步的键名、列表长度上限 ----------
 const COMMAND_HISTORY_KEY = 'xiaowen_command_history'
 const CHAT_HISTORY_KEY = 'xiaowen_chat_history'
 const MAX_COMMAND_HISTORY = 8
 const MAX_CHAT_HISTORY = 12
+const DEFAULT_LOGS = ['✅ 小文AI助手已就绪']
 /** 文生图轮询最长等待（毫秒）；略大于后端 IMAGE_TASK_TIMEOUT（默认 120s），避免无限轮询 */
 const IMAGE_POLL_MAX_MS = 130_000
 
@@ -100,7 +107,7 @@ function fetchClientLocation(timeoutMs = 6500) {
 function App() {
   // ---------- 输入与日志 ----------
   const [task, setTask] = useState('') // 与 CommandInput 受控绑定；发送成功后会清空
-  const [logList, setLogList] = useState(['✅ 小文AI助手已就绪']) // 右侧 LogPanel 数据源
+  const [logList, setLogList] = useState([...DEFAULT_LOGS]) // 右侧 LogPanel 数据源
   // ---------- 左栏主展示区：根据 contentType 切换子组件 ----------
   const [contentType, setContentType] = useState('default')
   const [chatReply, setChatReply] = useState('') // ChatPanel 展示的纯文本
@@ -146,18 +153,54 @@ function App() {
   /** 选完 exe 待用户确认名称：{ path, suggestedName } */
   const [addAppDraft, setAddAppDraft] = useState(null)
   const [addAppNameInput, setAddAppNameInput] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const music = useMusicPlayer() // 音乐播放状态与 <audio> ref 均在 Hook 内
+  const { setModeFromSync } = useTheme()
+  const { preferences, setPreferencesFromSync } = usePreferences()
 
-  /** 追加一条右侧日志 */
+  const showPrefRecoBadge = useMemo(
+    () => hasVisibleRecommendations(preferences, commandHistory, chatHistory),
+    [preferences, commandHistory, chatHistory, settingsOpen],
+  )
+
+  const { send: syncSend, connected: syncConnected } = useSyncSocket({
+    onMessage(msg) {
+      if (msg.type === 'SYNC_INIT' && msg.payload) {
+        if (Array.isArray(msg.payload.logs)) setLogList(msg.payload.logs)
+        if (typeof msg.payload.theme === 'string') setModeFromSync(msg.payload.theme)
+        if (msg.payload.preferences) setPreferencesFromSync(msg.payload.preferences)
+      } else if (msg.type === 'LOG_APPEND' && typeof msg.payload === 'string') {
+        setLogList((prev) => [...prev, msg.payload])
+      } else if (msg.type === 'LOG_CLEAR') {
+        setLogList([])
+      } else if (msg.type === 'THEME_SET' && typeof msg.payload === 'string') {
+        setModeFromSync(msg.payload)
+      } else if (msg.type === 'PREF_SET' && msg.payload) {
+        setPreferencesFromSync(msg.payload)
+      }
+    },
+  })
+
+  useEffect(() => {
+    return onThemeChange((theme) => syncSend('THEME_SET', theme))
+  }, [syncSend])
+
+  useEffect(() => {
+    return onPreferencesChange((prefs) => syncSend('PREF_SET', prefs))
+  }, [syncSend])
+
+  /** 追加一条右侧日志（本地 + 广播其它端/标签页） */
   const addLog = useCallback((text) => {
     setLogList((prev) => [...prev, text])
-  }, [])
+    syncSend('LOG_APPEND', text)
+  }, [syncSend])
 
-  /** 清空右侧运行日志（手动按钮或语音识别成功即将发送指令时调用） */
+  /** 清空右侧运行日志 */
   const clearLogList = useCallback(() => {
     setLogList([])
-  }, [])
+    syncSend('LOG_CLEAR')
+  }, [syncSend])
 
   /** 去重后把指令插到历史最前，并写入 localStorage */
   const rememberCommand = useCallback((cmdText) => {
@@ -306,7 +349,7 @@ function App() {
 
     try {
       const location = await fetchClientLocation(7000)
-      const payload = { task: cmdText, history: chatHistory }
+      const payload = { task: cmdText, history: chatHistory, preferences }
       if (location) payload.location = location
 
       const res = await fetch(apiUrl('/api/send-task'), {
@@ -421,7 +464,7 @@ function App() {
     }
     setTask('')
     setIsSending(false)
-  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory])
+  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory, preferences])
 
   /** DefaultPanel 快捷示例：摄像头肤质入口滚动定位，不走后端 */
   const handleDefaultExample = useCallback((example) => {
@@ -618,9 +661,26 @@ function App() {
   return (
     <div className="app">
       <SelectionToolbar />
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        commandHistory={commandHistory}
+        chatHistory={chatHistory}
+      />
       <XiaowenBot />
       {/* 顶栏：产品名 */}
       <header className="app-header">
+        <div className="app-header-tools">
+          <button
+            type="button"
+            className={`app-settings-btn ${showPrefRecoBadge ? 'has-reco' : ''}`}
+            onClick={() => setSettingsOpen(true)}
+            title={showPrefRecoBadge ? '个人偏好（有新的历史推荐）' : '个人偏好'}
+          >
+            ⚙️
+          </button>
+          <ThemeToggle />
+        </div>
         <div className="app-logo">小文</div>
         <p className="app-subtitle">智能语音助手</p>
       </header>
@@ -688,7 +748,12 @@ function App() {
 
         {/* right — 运行日志 */}
         <main className="panel panel--right">
-          <LogPanel logs={logList} onClear={clearLogList} />
+          <LogPanel
+            logs={logList}
+            onClear={clearLogList}
+            syncConnected={syncConnected}
+            platformLabel={platformLabel}
+          />
         </main>
       </div>
     </div>

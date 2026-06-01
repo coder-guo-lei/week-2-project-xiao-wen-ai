@@ -9,6 +9,7 @@ import config  # noqa: F401 — 副作用：执行 config 时加载 .env 并写�
 from config import AMAP_KEY, DASHSCOPE_API_KEY, DEEPSEEK_API_KEY, DEEPSEEK_CHAT_MODEL  # 仅用于启动时打日志
 from logic.task_parser import primary_chat_model_label  # 人类可读的「当前对话模型」摘要字符串
 from routes.api import api_bp  # 所有 /api/* 路由集中在此 Blueprint
+from sync_hub import sock  # 多端日志 WebSocket：/ws/sync
 
 logger = logging.getLogger(__name__)  # 本模块日志器名称 = __name__
 
@@ -19,6 +20,7 @@ CORS(
     expose_headers=["Content-Type", "X-TTS-VCN", "X-TTS-Cache", "X-TTS-Engine"],
 )
 app.register_blueprint(api_bp)  # 挂载路由：实际路径为 api_bp 内各 @route 声明的路径
+sock.init_app(app)
 
 logger.info(
     "LLM：DashScope=%s | DeepSeek=%s | 对话模型展示=%s | 高德=%s",
@@ -31,4 +33,7 @@ logger.info(
 
 if __name__ == "__main__":
     # 仅「直接 python app.py」时使用；生产环境请用 gunicorn 等托管并关闭 debug
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    # 手机/模拟器联调：set BACKEND_HOST=0.0.0.0（允许局域网访问）
+    import os
+    host = os.environ.get("BACKEND_HOST", "127.0.0.1")
+    app.run(host=host, port=5001, debug=True)

@@ -4,13 +4,12 @@
  * - 「朗读回复」：POST /api/tts（后端讯飞 WebSocket TTS，默认 WAV）
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
+import { getTtsVoiceFromStorage, playXfyunTts, cleanupTtsAudio } from '../utils/xfyunTts'
+import { usePreferences } from '../context/PreferenceContext'
+import { TTS_VOICE_LABELS } from '../preferences'
 import './ChatPanel.css'
 
-const VOICE_LABEL = {
-  female: '女声 · 默认（超拟人：聆小璇 / 经典：小燕）',
-  female_jiuxu: '女声 · 许久 / 聆玉昭',
-}
+const VOICE_LABEL = TTS_VOICE_LABELS
 
 /** split 带捕获组时，偶数位片段为 URL；勿对 /g 正则反复 .test()，否则会因 lastIndex 漏匹配。 */
 function renderTextWithLinks(text) {
@@ -29,7 +28,8 @@ function renderTextWithLinks(text) {
 }
 
 export default function ChatPanel({ reply }) {
-  const [voiceType, setVoiceType] = useState(() => getTtsVoiceFromStorage())
+  const { preferences } = usePreferences()
+  const voiceType = preferences.ttsVoice
 
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [copyDone, setCopyDone] = useState(false)
@@ -43,12 +43,6 @@ export default function ChatPanel({ reply }) {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
     setIsSpeaking(false)
   }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(VOICE_PREF_KEY, voiceType)
-    } catch { /* ignore */ }
-  }, [voiceType])
 
   useEffect(() => {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
@@ -140,16 +134,9 @@ export default function ChatPanel({ reply }) {
           <small className="cp-tts-engine">讯飞 TTS · {VOICE_LABEL[voiceType] || VOICE_LABEL.female}</small>
         </div>
         <div className="cp-tts-actions">
-          <select
-            value={voiceType}
-            onChange={(e) => setVoiceType(e.target.value)}
-            className="cp-tts-select"
-            disabled={isSpeaking}
-            title="后端若配置超拟人 wss，下列映射为 x5 发音人；否则为在线合成经典音库"
-          >
-            <option value="female">女声 · 默认</option>
-            <option value="female_jiuxu">女声 · 许久 / 玉昭</option>
-          </select>
+          <span className="cp-tts-voice-hint" title="在右上角「偏好」中修改音色">
+            {VOICE_LABEL[voiceType] || VOICE_LABEL.female}
+          </span>
           <button
             type="button"
             className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
