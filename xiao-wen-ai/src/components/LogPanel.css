@@ -1,13 +1,32 @@
 /* LogPanel.css — 右侧运行日志列表与滚动区 */
-/* ===== Log Panel ===== */
 .lp { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .lp-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   flex-shrink: 0; margin-bottom: 10px;
 }
+.lp-head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .lp-toolbar-actions {
   display: flex; align-items: center; gap: 6px;
   flex-shrink: 0;
+}
+.lp-sync {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.lp-sync-on {
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--success-bg);
+}
+.lp-sync-off {
+  background: var(--warning);
 }
 .lp-head {
   margin: 0;
@@ -37,7 +56,6 @@
   color: var(--text-secondary);
   cursor: pointer;
 }
-/* 底部 Activity 区内：占满父级高度 */
 .lp--dock .lp-body {
   flex: 1;
   min-height: 0;
@@ -58,6 +76,7 @@
   font-size: 13px; line-height: 1.75;
   contain: strict;
   will-change: scroll-position;
+  position: relative;
 }
 .lp-virtual-inner {
   position: relative;
@@ -71,6 +90,7 @@
   box-sizing: border-box;
   word-break: break-word;
   overflow-wrap: anywhere;
+  padding-bottom: 2px;
 }
 .lp-ok { color: var(--text-secondary); }
 .lp-err { color: #ef4444; }

@@ -2,14 +2,14 @@
  * ChatPanel.jsx — 对话面板：历史记录 + 最新回复朗读/复制
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
+import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts } from '../utils/xfyunTts'
 import ChatExportMenu from './ChatExportMenu'
 import ChatHistoryView from './ChatHistoryView'
 import './ChatPanel.css'
 
 const VOICE_LABEL = {
-  female: '女声 · 默认（超拟人：聆小璇 / 经典：小燕）',
-  female_jiuxu: '女声 · 许久 / 聆玉昭',
+  female: '女声 · 默认',
+  female_jiuxu: '女声 · 许久 / 玉昭',
 }
 
 const MAX_ROUNDS_HINT = 6
@@ -27,12 +27,6 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
     setIsSpeaking(false)
   }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(VOICE_PREF_KEY, voiceType)
-    } catch { /* ignore */ }
-  }, [voiceType])
 
   useEffect(() => {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)

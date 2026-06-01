@@ -11,6 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+.env.capacitor
+
+# Capacitor Android build cache
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/local.properties
 
 # Editor directories and files
 .vscode/*

@@ -289,10 +289,17 @@ def send_task():
         logger.info("Received task: %s", task)
         raw_loc = data.get("location")
         client_location = raw_loc if isinstance(raw_loc, dict) else None
-        # 写入用户消息日志
         save_log(user_id, session_id, "user", task)
 
-        res = parse_command(task, incoming_history, client_location, user_id=user_id)
+        raw_prefs = data.get("preferences")
+        client_preferences = raw_prefs if isinstance(raw_prefs, dict) else None
+        res = parse_command(
+            task,
+            incoming_history,
+            client_location,
+            user_id=user_id,
+            client_preferences=client_preferences,
+        )
 
         dm.transition(intent=session.LAST_INTENT, response_type=res.get("type"))
         if res.get("type") == "goodbye":

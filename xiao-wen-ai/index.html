@@ -5,7 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#3d8a80" />
+    <meta name="description" content="小文智能语音助手 — 对话、天气、音乐、图表等多模态交互" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
     <title>小文 · 智能语音助手</title>
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('xiaowen-theme-mode');
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

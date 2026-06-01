@@ -12,6 +12,8 @@
  *   onCollapse     {fn=}      点击收起时回调（可选）
  *   collapseLabel  {string}   收起按钮文案，默认「收起」
  *   className      {string}   附加根节点 class
+ *   syncConnected  {boolean=} 多端同步连接状态（可选）
+ *   platformLabel  {string=}  当前平台标签（可选）
  */
 import { useRef, useLayoutEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -21,7 +23,15 @@ import './LogPanel.css'
 const ESTIMATE_ROW_PX = 23
 const OVERSCAN = 12
 
-export default function LogPanel({ logs, onClear, onCollapse, collapseLabel = '收起', className = '' }) {
+export default function LogPanel({
+  logs,
+  onClear,
+  onCollapse,
+  collapseLabel = '收起',
+  className = '',
+  syncConnected,
+  platformLabel,
+}) {
   const bodyRef = useRef(null)
   const prevCountRef = useRef(logs.length)
 
@@ -30,6 +40,7 @@ export default function LogPanel({ logs, onClear, onCollapse, collapseLabel = '�
     getScrollElement: () => bodyRef.current,
     estimateSize: () => ESTIMATE_ROW_PX,
     overscan: OVERSCAN,
+    measureElement: (el) => el.getBoundingClientRect().height,
   })
 
   // 新增日志时滚到底部；清空时不强制滚动
@@ -45,7 +56,15 @@ export default function LogPanel({ logs, onClear, onCollapse, collapseLabel = '�
   return (
     <div className={rootClass}>
       <div className="lp-toolbar">
-        <h3 className="lp-head">📋 运行日志</h3>
+        <div className="lp-head-row">
+          <h3 className="lp-head">📋 运行日志</h3>
+          {typeof syncConnected === 'boolean' && (
+            <span
+              className={`lp-sync ${syncConnected ? 'lp-sync-on' : 'lp-sync-off'}`}
+              title={syncConnected ? `多端同步已连接（${platformLabel || 'Web'}）` : '同步未连接，仅本页日志'}
+            />
+          )}
+        </div>
         <div className="lp-toolbar-actions">
           {typeof onClear === 'function' && (
             <button type="button" className="lp-clear" onClick={onClear}>
