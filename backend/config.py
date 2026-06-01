@@ -91,6 +91,13 @@ NETEASE_HEADERS = {
 }
 
 MAX_KNOWLEDGE_SNIPPETS = 80
+KNOWLEDGE_MIN_MATCH_SCORE = int(os.environ.get("KNOWLEDGE_MIN_MATCH_SCORE", "1"))
+WEB_SEARCH_ENABLED = os.environ.get("WEB_SEARCH_ENABLED", "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+    "off",
+)
 MAX_CHAT_HISTORY_MESSAGES = 12
 MAX_CHAT_MESSAGE_CHARS = 1200
 

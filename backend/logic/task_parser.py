@@ -15,6 +15,8 @@ from pathlib import Path
 
 import requests
 
+from services.web_search import search_web_snippets
+
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
@@ -44,6 +46,8 @@ from config import (
     MAX_CHAT_MESSAGE_CHARS,
     MAX_KNOWLEDGE_SNIPPETS,
     MAX_UPLOAD_IMAGE_BYTES,
+    KNOWLEDGE_MIN_MATCH_SCORE,
+    WEB_SEARCH_ENABLED,
     MSG_LLM_NOT_CONFIGURED,
     PRIMARY_LLM_DEEPSEEK_FIRST,
     WORLD_SIM_LLM,
@@ -116,7 +120,7 @@ def primary_chat_model_label():
     return "未配置"
 
 
-def openai_compat_chat(api_url, api_key, model, messages, temperature=None):
+def openai_compat_chat(api_url, api_key, model, messages, temperature=None, enable_search=False):
     """调用 OpenAI 兼容的 chat/completions，成功返回文本，失败返回 None。"""
     if not api_key:
         return None
@@ -124,6 +128,8 @@ def openai_compat_chat(api_url, api_key, model, messages, temperature=None):
     body = {"model": model, "messages": messages}
     if temperature is not None:
         body["temperature"] = temperature
+    if enable_search and "dashscope" in (api_url or "").lower():
+        body["enable_search"] = True
     try:
         resp = requests.post(api_url, json=body, headers=headers, timeout=CHAT_TIMEOUT)
         data = resp.json()
@@ -1433,10 +1439,17 @@ def load_project_knowledge():
 
 
 def knowledge_search(query, limit=4):
+    """关键词匹配知识库；返回 (片段列表, 最高相关分)。"""
     snippets = load_project_knowledge()
+    if not snippets:
+        return [], 0
+
     tokens = [t for t in re.split(r"\W+", query.lower()) if len(t) >= 2]
     cn_terms = re.findall(r"[\u4e00-\u9fff]{2,}", query)
     terms = set(tokens + cn_terms)
+    if not terms:
+        return [], 0
+
     scored = []
     for item in snippets:
         text = item["text"].lower()
@@ -1444,16 +1457,31 @@ def knowledge_search(query, limit=4):
         if score:
             scored.append((score, item))
     if not scored:
-        scored = [(1, item) for item in snippets[:limit]]
+        return [], 0
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [item for _, item in scored[:limit]]
+    best = scored[0][0]
+    return [item for _, item in scored[:limit]], best
 
 
-def ai_answer_with_knowledge(query):
-    refs = knowledge_search(query)
+_KB_INSUFFICIENT_RE = re.compile(
+    r"资料不足|无法根据|没有找到|未找到|不足以|缺少相关|知识库.*空|没有.*资料",
+    re.I,
+)
+
+
+def _kb_answer_insufficient(answer: str) -> bool:
+    return bool(_KB_INSUFFICIENT_RE.search(answer or ""))
+
+
+def ai_answer_with_knowledge(query, refs=None):
+    if refs is None:
+        refs, _ = knowledge_search(query)
     context = "\n\n".join(f"【{r['source']}#{r['index']}】{r['text']}" for r in refs)
+    if not refs:
+        return None, []
+
     if not DASHSCOPE_API_KEY and not DEEPSEEK_API_KEY:
-        brief = refs[0]["text"][:360] if refs else "知识库暂时为空。"
+        brief = refs[0]["text"][:360]
         return (
             "我检索到了项目知识库，但对话模型未配置（请在 .env 配置 DASHSCOPE_API_KEY 或 DEEPSEEK_API_KEY）。"
             f"相关内容摘要：{brief}",
@@ -1472,7 +1500,117 @@ def ai_answer_with_knowledge(query):
     text = openai_compat_chat_fallback(messages)
     if text:
         return text, refs
-    return "知识库问答暂时失败，请稍后重试。", refs
+    return None, refs
+
+
+def ai_answer_with_dashscope_web_search(query):
+    """百炼模型内置联网搜索（enable_search）。"""
+    if not DASHSCOPE_API_KEY:
+        return None
+    system = (
+        "你是智能语音助手「小文」。请结合联网检索到的最新信息回答用户问题，"
+        "用自然口语化的中文，适合朗读；若信息不确定请说明。\n\n"
+        + current_datetime_context_for_llm()
+    )
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": query},
+    ]
+    return openai_compat_chat(
+        DASHSCOPE_CHAT_URL,
+        DASHSCOPE_API_KEY,
+        DASHSCOPE_CHAT_MODEL,
+        messages,
+        enable_search=True,
+    )
+
+
+def ai_answer_with_web_snippets(query, web_refs):
+    """根据网页检索摘要组织回答。"""
+    if not web_refs:
+        return None
+    lines = []
+    for i, r in enumerate(web_refs, 1):
+        title = r.get("title") or f"结果{i}"
+        snippet = r.get("snippet") or ""
+        url = r.get("url") or ""
+        line = f"{i}. {title}：{snippet}"
+        if url:
+            line += f"（{url}）"
+        lines.append(line)
+    context = "\n".join(lines)
+    search_url = f"https://www.baidu.com/s?wd={urllib.parse.quote(query)}"
+
+    if not DASHSCOPE_API_KEY and not DEEPSEEK_API_KEY:
+        return (
+            f"知识库未找到相关内容，已为你检索网络摘要：\n{context}\n\n"
+            f"更多结果：{search_url}"
+        )
+
+    prompt = (
+        "你是小文助手。请根据下方「联网检索摘要」回答用户问题；"
+        "信息来自网络，回答末尾简要说明来源；摘要不足时如实说明。\n\n"
+        + current_datetime_context_for_llm()
+    )
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": f"检索摘要：\n{context}\n\n问题：{query}"},
+    ]
+    text = openai_compat_chat_fallback(messages)
+    if text:
+        return text + f"\n\n🔗 更多搜索：{search_url}"
+    return None
+
+
+def answer_with_kb_then_web(query, history=None, location_hint=None, user_id=None):
+    """
+    先检索项目知识库；未命中或资料不足时联网搜索，再不行走普通对话。
+    返回 (answer, meta)；meta 含 answerSource / knowledgeSources / webSearchUsed。
+    """
+    meta = {
+        "answerSource": "llm",
+        "knowledgeSources": "",
+        "webSearchUsed": False,
+        "webSearchUrl": "",
+    }
+
+    refs, best_score = knowledge_search(query)
+    if best_score >= KNOWLEDGE_MIN_MATCH_SCORE and refs:
+        answer, refs = ai_answer_with_knowledge(query, refs=refs)
+        if answer and not _kb_answer_insufficient(answer):
+            meta["answerSource"] = "knowledge"
+            meta["knowledgeSources"] = "、".join(f"{r['source']}#{r['index']}" for r in refs)
+            return answer, meta
+
+    if WEB_SEARCH_ENABLED:
+        meta["webSearchUsed"] = True
+        meta["webSearchUrl"] = f"https://www.baidu.com/s?wd={urllib.parse.quote(query)}"
+
+        web_text = ai_answer_with_dashscope_web_search(query)
+        if web_text:
+            meta["answerSource"] = "web"
+            return web_text, meta
+
+        web_refs = search_web_snippets(query)
+        web_text = ai_answer_with_web_snippets(query, web_refs)
+        if web_text:
+            meta["answerSource"] = "web"
+            if web_refs and web_refs[0].get("url"):
+                meta["webSearchUrl"] = web_refs[0]["url"]
+            return web_text, meta
+
+    meta["webSearchUsed"] = False
+    answer = ai_chat(query, history=history, location_hint=location_hint, user_id=user_id)
+    return answer, meta
+
+
+def _mode_payload_for_answer(meta):
+    src = meta.get("answerSource") or "llm"
+    if src == "knowledge":
+        return {"mode": "knowledge", "modeLabel": "知识库问答"}
+    if src == "web":
+        return {"mode": "web", "modeLabel": "联网搜索"}
+    return {}
 
 
 def is_knowledge_intent(task):
@@ -3129,15 +3267,33 @@ def parse_command(task, chat_history=None, client_location=None, user_id=None):
         )
 
     if intent == INTENT_KNOWLEDGE:
-        answer, refs = ai_answer_with_knowledge(task)
-        sources = "、".join(f"{r['source']}#{r['index']}" for r in refs)
-        return with_intent_workflow(
-            {"type": "chat", "msg": answer, "knowledgeSources": sources, **current_mode_payload({"mode": "knowledge", "modeLabel": "知识库问答"})},
-            intent_result,
-            ("接收问题", task),
-            ("检索知识库", sources or "项目 README / 汇总文档"),
-            ("生成回答", "基于检索片段组织答案"),
-        )
+        answer, ans_meta = answer_with_kb_then_web(task, chat_history, client_location, user_id)
+        payload = {
+            "type": "chat",
+            "msg": answer,
+            **current_mode_payload(_mode_payload_for_answer(ans_meta)),
+        }
+        if ans_meta.get("knowledgeSources"):
+            payload["knowledgeSources"] = ans_meta["knowledgeSources"]
+        if ans_meta.get("webSearchUsed"):
+            payload["webSearchUsed"] = True
+            if ans_meta.get("webSearchUrl"):
+                payload["webSearchUrl"] = ans_meta["webSearchUrl"]
+        wf = [("接收问题", task)]
+        if ans_meta.get("answerSource") == "knowledge":
+            wf.extend([
+                ("检索知识库", ans_meta.get("knowledgeSources") or "项目文档"),
+                ("生成回答", "基于知识库片段"),
+            ])
+        elif ans_meta.get("answerSource") == "web":
+            wf.extend([
+                ("检索知识库", "未命中相关内容"),
+                ("联网搜索", "百炼联网或百度搜索摘要"),
+                ("生成回答", "基于网络信息"),
+            ])
+        else:
+            wf.append(("生成回答", "知识库与联网均未命中，走通用对话"))
+        return with_intent_workflow(payload, intent_result, *wf)
 
     if intent == INTENT_IMAGE_LOOKUP:
         query = extract_image_search_query(task, chat_history)
@@ -3418,20 +3574,41 @@ def parse_command(task, chat_history=None, client_location=None, user_id=None):
     ctx_wf = dm.context_label()
     if loc_hint:
         ctx_wf += "；已注入大致位置（逆地理地址，供回答贴近本地）"
-    return with_intent_workflow(
-        {
-            "type": "chat",
-            "msg": ai_chat(
-                task,
-                chat_history,
-                location_hint=loc_hint,
-                user_id=user_id,
-            ),
-            **current_mode_payload(),
-        },
-        intent_result,
-        ("接收问题", task),
-        ("整理上下文", ctx_wf),
-        ("调用对话模型", primary_chat_model_label()),
-        ("返回回答", "展示在小文回复卡片"),
+
+    answer, ans_meta = answer_with_kb_then_web(
+        task,
+        chat_history,
+        location_hint=loc_hint,
+        user_id=user_id,
     )
+    chat_payload = {
+        "type": "chat",
+        "msg": answer,
+        **current_mode_payload(_mode_payload_for_answer(ans_meta)),
+    }
+    if ans_meta.get("knowledgeSources"):
+        chat_payload["knowledgeSources"] = ans_meta["knowledgeSources"]
+    if ans_meta.get("webSearchUsed"):
+        chat_payload["webSearchUsed"] = True
+        if ans_meta.get("webSearchUrl"):
+            chat_payload["webSearchUrl"] = ans_meta["webSearchUrl"]
+
+    wf = [("接收问题", task), ("整理上下文", ctx_wf)]
+    if ans_meta.get("answerSource") == "knowledge":
+        wf.extend([
+            ("检索知识库", ans_meta.get("knowledgeSources") or "项目文档"),
+            ("生成回答", "优先使用知识库"),
+        ])
+    elif ans_meta.get("answerSource") == "web":
+        wf.extend([
+            ("检索知识库", "未命中"),
+            ("联网搜索", "补充网络信息"),
+            ("生成回答", "基于联网结果"),
+        ])
+    else:
+        wf.extend([
+            ("检索知识库", "未命中或未启用"),
+            ("调用对话模型", primary_chat_model_label()),
+            ("返回回答", "展示在小文回复卡片"),
+        ])
+    return with_intent_workflow(chat_payload, intent_result, *wf)

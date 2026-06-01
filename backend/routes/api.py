@@ -344,6 +344,10 @@ def send_task():
             response["chartData"] = res["chartData"]
         if "imageUnderstandingUrl" in res:
             response["imageUnderstandingUrl"] = res["imageUnderstandingUrl"]
+        if "webSearchUsed" in res:
+            response["webSearchUsed"] = res["webSearchUsed"]
+        if "webSearchUrl" in res:
+            response["webSearchUrl"] = res["webSearchUrl"]
 
         # 写入助手回复日志
         intent_hint = res.get("type", "")
