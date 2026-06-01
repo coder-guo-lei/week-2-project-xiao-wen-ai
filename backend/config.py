@@ -43,7 +43,14 @@ XFYUN_TTS_AUDIO_FORMAT = os.environ.get("XFYUN_TTS_AUDIO_FORMAT", "wav").strip()
 XFYUN_TTS_SAMPLE_RATE = int(os.environ.get("XFYUN_TTS_SAMPLE_RATE", "16000"))
 
 XFYUN_SUPER_TTS_WS_URL = os.environ.get("XFYUN_SUPER_TTS_WS_URL", "").strip()
-USE_XFYUN_SUPER_TTS = bool(XFYUN_SUPER_TTS_WS_URL)
+_XFYUN_TTS_ENGINE = os.environ.get("XFYUN_TTS_ENGINE", "auto").strip().lower()
+_USE_SUPER_BY_URL = bool(XFYUN_SUPER_TTS_WS_URL)
+if _XFYUN_TTS_ENGINE == "classic":
+    USE_XFYUN_SUPER_TTS = False
+elif _XFYUN_TTS_ENGINE == "super":
+    USE_XFYUN_SUPER_TTS = _USE_SUPER_BY_URL
+else:
+    USE_XFYUN_SUPER_TTS = _USE_SUPER_BY_URL
 _sr_super = int(os.environ.get("XFYUN_SUPER_TTS_SAMPLE_RATE", "24000"))
 XFYUN_SUPER_TTS_SAMPLE_RATE = _sr_super if _sr_super in (8000, 16000, 24000) else 24000
 XFYUN_SUPER_TEXT_UTF8_MAX = min(int(os.environ.get("XFYUN_SUPER_TEXT_UTF8_MAX", "62000")), 65500)
@@ -59,10 +66,72 @@ def xfyun_vcn_ok(vcn: str) -> bool:
 
 
 if USE_XFYUN_SUPER_TTS:
-    _sup_f = os.environ.get("XFYUN_DEFAULT_VCN_FEMALE", "x5_lingxiaoxuan_flow").strip()
-    XFYUN_DEFAULT_VCN_FEMALE = _sup_f if xfyun_vcn_ok(_sup_f) else "x5_lingxiaoxuan_flow"
+    _sup_f = os.environ.get("XFYUN_DEFAULT_VCN_SUPER", "x6_lingxiaoxuan_pro").strip()
+    XFYUN_DEFAULT_VCN_SUPER = _sup_f if xfyun_vcn_ok(_sup_f) else "x6_lingxiaoxuan_pro"
 else:
-    XFYUN_DEFAULT_VCN_FEMALE = "xiaoyan"
+    XFYUN_DEFAULT_VCN_SUPER = "x6_lingxiaoxuan_pro"
+
+_classic_default = os.environ.get("XFYUN_DEFAULT_VCN_FEMALE", "x4_xiaoyan").strip()
+XFYUN_DEFAULT_VCN_FEMALE = _classic_default if xfyun_vcn_ok(_classic_default) else "x4_xiaoyan"
+
+# 在线语音合成 v2 发音人：偏好键 / 前端枚举 → vcn（控制台「基础发音人」）
+XFYUN_ONLINE_VCN_PRESETS = {
+    "default": "x4_xiaoyan",
+    "female": "x4_xiaoyan",
+    "x4_xiaoyan": "x4_xiaoyan",
+    "x4_yezi": "x4_yezi",
+    "gentle_female": "aisjiuxu",
+    "female_jiuxu": "aisjiuxu",
+    "steady_male": "aisjiuxu",
+    "aisjiuxu": "aisjiuxu",
+    "aisjinger": "aisjinger",
+    "aisbabyxu": "aisbabyxu",
+}
+
+# 超拟人发音人（控制台「超拟人语音合成」→ 发音人管理）
+XFYUN_SUPER_VCN_PRESETS = {
+    "super_default": "x6_lingxiaoxuan_pro",
+    "x6_lingxiaoxuan_pro": "x6_lingxiaoxuan_pro",
+    "x5_lingyuzhao_flow": "x5_lingyuzhao_flow",
+    "x6_lingxiaoyue_pro": "x6_lingxiaoyue_pro",
+    "x6_lingyuyan_pro": "x6_lingyuyan_pro",
+    "x6_lingfeiyi_pro": "x6_lingfeiyi_pro",
+    "x6_wumeinv_pro": "x6_wumeinv_pro",
+    "x6_ruyadashu_pro": "x6_ruyadashu_pro",
+}
+
+
+XFYUN_CLASSIC_VCN_SET = frozenset(XFYUN_ONLINE_VCN_PRESETS.values())
+
+
+def is_classic_online_vcn(vcn: str) -> bool:
+    """控制台「基础发音人」/ 在线语音合成 v2（tts-api.xfyun.cn），非超拟人 x5/x6 列表。"""
+    v = (vcn or "").strip()
+    if not v:
+        return True
+    vl = v.lower()
+    if vl in XFYUN_SUPER_VCN_PRESETS or vl in {k.lower() for k in XFYUN_SUPER_VCN_PRESETS}:
+        return False
+    if re.match(r"^x[567]_", vl):
+        return False
+    if v in XFYUN_CLASSIC_VCN_SET:
+        return True
+    if vl.startswith("x4_") or vl.startswith("ais"):
+        return True
+    return vl in ("xiaoyan", "xiaoyu", "xiaofeng", "xiaoqi", "vinn")
+
+
+def resolve_xfyun_vcn(voice_in: str) -> str:
+    """将前端 voice 预设或直传 vcn 解析为讯飞在线合成参数。"""
+    v = (voice_in or "").strip()
+    key = v.lower()
+    if key in XFYUN_ONLINE_VCN_PRESETS:
+        return XFYUN_ONLINE_VCN_PRESETS[key]
+    if key in XFYUN_SUPER_VCN_PRESETS:
+        return XFYUN_SUPER_VCN_PRESETS[key]
+    if xfyun_vcn_ok(v):
+        return v
+    return XFYUN_DEFAULT_VCN_FEMALE
 
 # ---------- DashScope / 高德 / DeepSeek 等 ----------
 AMAP_KEY = os.environ.get("AMAP_KEY", "").strip()

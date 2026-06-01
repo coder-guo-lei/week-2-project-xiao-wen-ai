@@ -2,15 +2,10 @@
  * 后端偏好 tts_voice → 前端 localStorage 音色键映射
  */
 import { VOICE_PREF_KEY } from './xfyunTts.js'
-
-const TTS_VOICE_MAP = {
-  default: 'female',
-  gentle_female: 'female_jiuxu',
-  steady_male: 'female',
-}
+import { normalizeTtsVoice } from './ttsVoices.js'
 
 export function syncTtsVoicePref(ttsVoice) {
-  const mapped = TTS_VOICE_MAP[ttsVoice] || TTS_VOICE_MAP.default
+  const mapped = normalizeTtsVoice(ttsVoice)
   try {
     localStorage.setItem(VOICE_PREF_KEY, mapped)
   } catch { /* ignore */ }
