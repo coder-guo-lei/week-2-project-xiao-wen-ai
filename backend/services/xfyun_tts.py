@@ -34,6 +34,7 @@ from config import (
     XFYUN_TEXT_UTF8_MAX,
     XFYUN_TTS_AUDIO_FORMAT,
     XFYUN_TTS_SAMPLE_RATE,
+    is_classic_online_vcn,
 )
 
 def plain_text_for_tts(raw: str) -> str:
@@ -372,18 +373,18 @@ def super_vcn_to_classic_fallback(super_vcn: str) -> str:
     """超拟人发音人 11200 未授权时，降级「在线语音合成」v2 的兼容 vcn（两套列表不通用）。"""
     v = (super_vcn or "").strip().lower()
     exact = {
-        "x5_lingfeiyi_flow": "xiaofeng",
-        "x5_lingxiaoxuan_flow": "xiaoyan",
+        "x5_lingfeiyi_flow": "aisjiuxu",
+        "x5_lingxiaoxuan_flow": "x4_xiaoyan",
         "x5_lingyuzhao_flow": "aisjiuxu",
-        "x5_lingxiaoqi_flow": "xiaoyan",
+        "x5_lingxiaoqi_flow": "x4_xiaoyan",
     }
     if v in exact:
         return exact[v]
     if not v.startswith("x5_"):
-        return "xiaoyan"
+        return "x4_xiaoyan"
     if any(k in v for k in ("lingfei", "feiyi", "yufeng", "feichen", "yunjian", "xiyue")):
-        return "xiaofeng"
-    return "xiaoyan"
+        return "aisjiuxu"
+    return "x4_xiaoyan"
 
 
 async def _async_xfyun_classic_tts_audio(
@@ -464,27 +465,27 @@ async def _async_xfyun_tts_audio(
     volume: int,
 ) -> tuple[bytes, str, str]:
     """返回 (音频字节, MIME, 引擎标签)：super | classic | classic-fallback。
-    超拟人 11200（发音人未授权）时自动走在线 v2 兼容发音人。"""
-    if USE_XFYUN_SUPER_TTS:
-        try:
-            b, m = await _async_xfyun_super_tts_audio(text, vcn, speed, volume)
-            return b, m, "super"
-        except RuntimeError as e:
-            err = str(e)
-            if "11200" not in err and "未授权" not in err:
-                raise
-            classic_vcn = super_vcn_to_classic_fallback(vcn)
-            logger.warning(
-                "xfyun super TTS failed (%s), fallback to classic vcn=%s (was %s)",
-                err[:120],
-                classic_vcn,
-                vcn,
-            )
-            b, m = await _async_xfyun_classic_tts_audio(text, classic_vcn, speed, volume)
-            return b, m, "classic-fallback"
+    基础发音人（x4_/ais*）始终走在线合成 v2；超拟人仅用于 x5/x6 等 vcn。"""
+    if is_classic_online_vcn(vcn) or not USE_XFYUN_SUPER_TTS:
+        b, m = await _async_xfyun_classic_tts_audio(text, vcn, speed, volume)
+        return b, m, "classic"
 
-    b, m = await _async_xfyun_classic_tts_audio(text, vcn, speed, volume)
-    return b, m, "classic"
+    try:
+        b, m = await _async_xfyun_super_tts_audio(text, vcn, speed, volume)
+        return b, m, "super"
+    except RuntimeError as e:
+        err = str(e)
+        if not any(k in err for k in ("11200", "未授权", "10163", "must be one of")):
+            raise
+        classic_vcn = super_vcn_to_classic_fallback(vcn)
+        logger.warning(
+            "xfyun super TTS failed (%s), fallback to classic vcn=%s (was %s)",
+            err[:160],
+            classic_vcn,
+            vcn,
+        )
+        b, m = await _async_xfyun_classic_tts_audio(text, classic_vcn, speed, volume)
+        return b, m, "classic-fallback"
 
 
 xfyun_response_is_mp3 = _xfyun_response_is_mp3

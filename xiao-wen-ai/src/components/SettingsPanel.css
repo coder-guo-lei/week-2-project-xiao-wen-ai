@@ -105,6 +105,10 @@
   padding-right: 36px;
 }
 
+.settings-field--tts label {
+  margin-bottom: 4px;
+}
+
 .settings-message {
   margin: 0 var(--space-6) var(--space-3);
   padding: var(--space-2) var(--space-4);

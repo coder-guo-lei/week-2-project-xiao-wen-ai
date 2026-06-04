@@ -2,15 +2,12 @@
  * ChatPanel.jsx — 对话面板：历史记录 + 最新回复朗读/复制
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts } from '../utils/xfyunTts'
+import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
+import TtsVoiceDualPicker from './TtsVoiceDualPicker'
+import { ttsVoiceLabel } from '../utils/ttsVoices'
 import ChatExportMenu from './ChatExportMenu'
 import ChatHistoryView from './ChatHistoryView'
 import './ChatPanel.css'
-
-const VOICE_LABEL = {
-  female: '女声 · 默认',
-  female_jiuxu: '女声 · 许久 / 玉昭',
-}
 
 const MAX_ROUNDS_HINT = 6
 
@@ -27,6 +24,12 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
     setIsSpeaking(false)
   }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VOICE_PREF_KEY, voiceType)
+    } catch { /* ignore */ }
+  }, [voiceType])
 
   useEffect(() => {
     cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
@@ -131,34 +134,33 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
         <div className="cp-tts">
           <div className="cp-tts-label">
             <span>🔊 朗读最新回复</span>
-            <small className="cp-tts-engine">讯飞 TTS · {VOICE_LABEL[voiceType] || VOICE_LABEL.female}</small>
+            <small className="cp-tts-engine">讯飞 TTS · {ttsVoiceLabel(voiceType)}</small>
           </div>
-          <div className="cp-tts-actions">
-            <select
+          <div className="cp-tts-actions cp-tts-actions--stack">
+            <TtsVoiceDualPicker
               value={voiceType}
-              onChange={(e) => setVoiceType(e.target.value)}
-              className="cp-tts-select"
+              onChange={setVoiceType}
               disabled={isSpeaking}
-            >
-              <option value="female">女声 · 默认</option>
-              <option value="female_jiuxu">女声 · 许久 / 玉昭</option>
-            </select>
-            <button
-              type="button"
-              className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
-              onClick={speakReply}
-              disabled={!trimmed}
-            >
-              {isSpeaking ? '朗读中…' : '开始朗读'}
-            </button>
-            <button
-              type="button"
-              className="cp-tts-btn"
-              onClick={stopSpeaking}
-              disabled={!isSpeaking}
-            >
-              停止
-            </button>
+              compact
+            />
+            <div className="cp-tts-btns">
+              <button
+                type="button"
+                className={`cp-tts-btn cp-tts-btn--primary ${isSpeaking ? 'is-speaking' : ''}`}
+                onClick={speakReply}
+                disabled={!trimmed}
+              >
+                {isSpeaking ? '朗读中…' : '开始朗读'}
+              </button>
+              <button
+                type="button"
+                className="cp-tts-btn"
+                onClick={stopSpeaking}
+                disabled={!isSpeaking}
+              >
+                停止
+              </button>
+            </div>
           </div>
           {ttsError && <p className="cp-tts-tip cp-tts-tip--error">{ttsError}</p>}
         </div>

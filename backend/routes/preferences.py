@@ -23,7 +23,7 @@ DEFAULT_PREFERENCES = {
     "interests": "",
     "language_style": "casual",
     "response_length": "medium",
-    "tts_voice": "default",
+    "tts_voice": "x4_xiaoyan",
 }
 
 

@@ -20,6 +20,8 @@ from config import (
     XFYUN_APP_ID,
     XFYUN_DEFAULT_VCN_FEMALE,
     XFYUN_TTS_DISK_CACHE,
+    is_classic_online_vcn,
+    resolve_xfyun_vcn,
     XFYUN_TTS_SPEED,
     XFYUN_TTS_VOLUME,
     xfyun_vcn_ok,
@@ -137,7 +139,6 @@ def tts_xfyun():
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
     voice_in = (data.get("voice") or "").strip()
-    voice_key = voice_in.lower()
     try:
         speed = int(data.get("speed", XFYUN_TTS_SPEED))
     except (TypeError, ValueError):
@@ -149,17 +150,7 @@ def tts_xfyun():
     speed = max(0, min(100, speed))
     volume = max(0, min(100, volume))
 
-    # 前端 voice 传枚举或直传讯飞 vcn 字符串；非法则回默认女声
-    if voice_key == "female":
-        vcn = XFYUN_DEFAULT_VCN_FEMALE
-    elif voice_key == "female_jiuxu":
-        vcn = "x5_lingyuzhao_flow" if USE_XFYUN_SUPER_TTS else "aisjiuxu"
-    elif voice_key in ("female_xiaoqi", "female_xiaoyu", "male_yunxi", "male"):
-        vcn = XFYUN_DEFAULT_VCN_FEMALE
-    elif xfyun_vcn_ok(voice_in):
-        vcn = voice_in
-    else:
-        vcn = XFYUN_DEFAULT_VCN_FEMALE
+    vcn = resolve_xfyun_vcn(voice_in)
 
     if not text:
         return jsonify({"code": 400, "reply": "缺少朗读文本 text"}), 400
@@ -183,7 +174,7 @@ def tts_xfyun():
                         "Cache-Control": "no-store",
                         "X-TTS-Cache": "hit",
                         "X-TTS-VCN": vcn,
-                        "X-TTS-Engine": "super" if USE_XFYUN_SUPER_TTS else "classic",
+                        "X-TTS-Engine": "classic" if is_classic_online_vcn(vcn) else "super",
                     },
                 )
 
@@ -443,7 +434,12 @@ def user_apps_pick_exe():
 def capabilities():
     """前端用于判断是否展示「讯飞听写」上传按钮等；与 TTS 共用同一套讯飞密钥。"""
     ok = bool(XFYUN_APP_ID and XFYUN_API_KEY and XFYUN_API_SECRET)
-    return jsonify({"code": 200, "xfyunAsr": ok, "userExePick": os.name == "nt"})
+    return jsonify({
+        "code": 200,
+        "xfyunAsr": ok,
+        "xfyunSuperTts": ok and USE_XFYUN_SUPER_TTS,
+        "userExePick": os.name == "nt",
+    })
 
 
 @api_bp.route("/api/speech-to-text", methods=["POST"])
