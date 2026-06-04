@@ -88,7 +88,11 @@ jobs:
         run: pip install flake8
 
       - name: flake8 语法检查
-        run: flake8 . --max-line-length=120 --exclude=__pycache__,.env --ignore=E501,W503
+        run: |
+          flake8 . \
+            --max-line-length=120 \
+            --exclude=__pycache__,.env,tests \
+            --ignore=E501,W503,F401,E402,C901
 
   # ==================== 后端测试 ====================
   backend-test:

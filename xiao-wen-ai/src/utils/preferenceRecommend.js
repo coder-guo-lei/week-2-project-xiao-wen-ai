@@ -1,5 +1,5 @@
-/**
- * 根据指令历史与对话记录，规则推断偏好推荐（轻量「行为画像」，非云端大数据）。
+﻿/**
+ * 根据指令历史与对话记录，规则推断偏好推荐（轻量、行为画像，非云端大数据）。
  */
 import { normalizePreferences } from '../preferences'
 
@@ -11,7 +11,7 @@ const FRIENDLY_CMD = /笑话|故事|聊天|随便|辛苦|谢谢|哈哈|有趣/
 const MUSIC_CMD = /音乐|播放|放首|唱歌|歌曲/
 const NICKNAME_PATTERNS = [
   /叫我([^\s，。！？,.]{1,8})/,
-  /称呼我[为是]?([^\s，。！？,.]{1,8})/,
+  /称呼我[是为]?([^\s，。！？,.]{1,8})/,
   /你可以叫我([^\s，。！？,.]{1,8})/,
 ]
 
@@ -65,7 +65,6 @@ export function recommendPreferences(input = {}) {
   const chats = Array.isArray(input.chatHistory) ? input.chatHistory : []
   const userTexts = chats.filter((m) => m.role === 'user').map(textOf)
   const assistantTexts = chats.filter((m) => m.role === 'assistant').map(textOf)
-  const allUserText = [...commands, ...userTexts].join('\n')
 
   const sampleSize = commands.length + chats.length
   const hasEnoughData = sampleSize >= MIN_SAMPLES
@@ -78,12 +77,12 @@ export function recommendPreferences(input = {}) {
   }
 
   let detailedScore = 0
-  let conciseScore = 0
   commands.forEach((c) => {
     detailedScore += scorePattern(c, DETAILED_CMD)
-    if (c.length <= 12 && !DETAILED_CMD.test(c)) conciseScore += 1
   })
-  userTexts.forEach((t) => { detailedScore += scorePattern(t, DETAILED_CMD) })
+  userTexts.forEach((t) => {
+    detailedScore += scorePattern(t, DETAILED_CMD)
+  })
 
   const assistantLengths = assistantTexts.map((t) => t.length).filter((n) => n > 0)
   const avgAssistantLen = assistantLengths.length
@@ -95,9 +94,10 @@ export function recommendPreferences(input = {}) {
     reasons.push({
       field: 'replyStyle',
       value: 'detailed',
-      text: detailedScore >= 2
-        ? `最近 ${detailedScore} 次输入包含「详细/展开/介绍」等表述`
-        : `近期助手回复平均较长（约 ${Math.round(avgAssistantLen)} 字），更适合详细风格`,
+      text:
+        detailedScore >= 2
+          ? `最近 ${detailedScore} 次输入包含「详细/展开/介绍」等表述`
+          : `近期助手回复平均较长（约 ${Math.round(avgAssistantLen)} 字），更适合详细风格`,
     })
   } else if (commands.length >= 4 && detailedScore === 0 && avgAssistantLen < 90) {
     suggestions.replyStyle = 'concise'
@@ -129,7 +129,7 @@ export function recommendPreferences(input = {}) {
     reasons.push({
       field: 'assistantTone',
       value: 'friendly',
-      text: `你常进行闲聊、笑话、故事类互动（${friendlyScore} 次）`,
+      text: `你常进行闲聊、玩笑、故事类互动（${friendlyScore} 次）`,
     })
   }
 
