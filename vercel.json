@@ -1,0 +1,9 @@
+﻿{
+  "buildCommand": "cd xiao-wen-ai && npm run build",
+  "outputDirectory": "xiao-wen-ai/dist",
+  "framework": "vite",
+  "installCommand": "cd xiao-wen-ai && npm install",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
