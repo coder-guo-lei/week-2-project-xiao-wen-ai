@@ -1,0 +1,9 @@
+﻿dist
+android
+node_modules
+package-lock.json
+pnpm-lock.yaml
+*.db
+*.pptx
+*.pyc
+__pycache__
