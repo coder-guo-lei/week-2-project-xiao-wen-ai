@@ -18,20 +18,23 @@ export default function ChatExportMenu({ history }) {
 
   const canExport = normalizeHistory(history).length > 0
 
-  const handleExport = useCallback(async (format) => {
-    if (!canExport || busy) return
-    setError('')
-    setBusy(format)
-    setOpen(false)
-    try {
-      await exportChatHistory(format, history)
-    } catch (e) {
-      console.error(e)
-      setError(e?.message || '导出失败，请稍后重试')
-    } finally {
-      setBusy(null)
-    }
-  }, [busy, canExport, history])
+  const handleExport = useCallback(
+    async (format) => {
+      if (!canExport || busy) return
+      setError('')
+      setBusy(format)
+      setOpen(false)
+      try {
+        await exportChatHistory(format, history)
+      } catch (e) {
+        console.error(e)
+        setError(e?.message || '导出失败，请稍后重试')
+      } finally {
+        setBusy(null)
+      }
+    },
+    [busy, canExport, history],
+  )
 
   return (
     <div className="cex">
@@ -45,7 +48,9 @@ export default function ChatExportMenu({ history }) {
         title={canExport ? '导出对话记录' : '暂无对话记录'}
       >
         {busy ? '导出中…' : '导出记录'}
-        <span className="cex-chevron" aria-hidden>{open ? '▴' : '▾'}</span>
+        <span className="cex-chevron" aria-hidden>
+          {open ? '▴' : '▾'}
+        </span>
       </button>
       {open && canExport && (
         <div className="cex-menu" role="menu">

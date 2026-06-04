@@ -12,11 +12,14 @@ function nativeApiFallback() {
   return 'http://127.0.0.1:5001'
 }
 
-export const API_BASE = (_fromEnv != null && String(_fromEnv).trim() !== '')
-  ? String(_fromEnv).trim().replace(/\/$/, '')
-  : (Capacitor.isNativePlatform()
-    ? nativeApiFallback()
-    : (import.meta.env.DEV ? '' : 'http://127.0.0.1:5001'))
+export const API_BASE =
+  _fromEnv != null && String(_fromEnv).trim() !== ''
+    ? String(_fromEnv).trim().replace(/\/$/, '')
+    : Capacitor.isNativePlatform()
+      ? nativeApiFallback()
+      : import.meta.env.DEV
+        ? ''
+        : 'http://127.0.0.1:5001'
 
 export function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`

@@ -4,9 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from '../wsBase'
 
-const CLIENT_ID = typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : `client-${Date.now()}`
+const CLIENT_ID =
+  typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `client-${Date.now()}`
 
 export default function useSyncSocket({ onMessage, enabled = true }) {
   const wsRef = useRef(null)

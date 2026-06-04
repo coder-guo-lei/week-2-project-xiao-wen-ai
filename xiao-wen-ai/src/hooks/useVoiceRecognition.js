@@ -193,24 +193,36 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
   const releaseCmdMicStream = useCallback(() => {
     try {
       cmdMicStreamRef.current?.getTracks?.().forEach((t) => t.stop())
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     cmdMicStreamRef.current = null
   }, [])
 
-  const stopWakeRecognition = useCallback((suppressRestart = true) => {
-    clearWakeRestartTimer()
-    suppressWakeRestartRef.current = suppressRestart
-    try { wakeRecRef.current?.stop() } catch { /* ignore */ }
-    wakeRunningRef.current = false
-  }, [clearWakeRestartTimer])
+  const stopWakeRecognition = useCallback(
+    (suppressRestart = true) => {
+      clearWakeRestartTimer()
+      suppressWakeRestartRef.current = suppressRestart
+      try {
+        wakeRecRef.current?.stop()
+      } catch {
+        /* ignore */
+      }
+      wakeRunningRef.current = false
+    },
+    [clearWakeRestartTimer],
+  )
 
-  const scheduleWakeRestart = useCallback((delay = 700) => {
-    clearWakeRestartTimer()
-    if (!wakeWantedRef.current || cmdRunningRef.current || suppressWakeRestartRef.current) return
-    wakeRestartTimerRef.current = setTimeout(() => {
-      safeStartWakeRef.current?.()
-    }, delay)
-  }, [clearWakeRestartTimer])
+  const scheduleWakeRestart = useCallback(
+    (delay = 700) => {
+      clearWakeRestartTimer()
+      if (!wakeWantedRef.current || cmdRunningRef.current || suppressWakeRestartRef.current) return
+      wakeRestartTimerRef.current = setTimeout(() => {
+        safeStartWakeRef.current?.()
+      }, delay)
+    },
+    [clearWakeRestartTimer],
+  )
 
   useEffect(() => {
     onResultRef.current = onResult
@@ -371,197 +383,206 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
     return rec
   }, [addLog, clearCmdNoInputTimer, clearCmdSilenceTimer, releaseCmdMicStream, scheduleWakeRestart])
 
-  const startCmdRecognition = useCallback((opts = {}) => {
-    const isNetworkRetry = opts.isNetworkRetry === true
+  const startCmdRecognition = useCallback(
+    (opts = {}) => {
+      const isNetworkRetry = opts.isNetworkRetry === true
 
-    if (cmdRunningRef.current || cmdStartPendingRef.current) return
+      if (cmdRunningRef.current || cmdStartPendingRef.current) return
 
-    if (!isNetworkRetry) {
-      cmdNetworkRetryCountRef.current = 0
-      cmdSkipEmptyEndLogRef.current = false
-    }
+      if (!isNetworkRetry) {
+        cmdNetworkRetryCountRef.current = 0
+        cmdSkipEmptyEndLogRef.current = false
+      }
 
-    /* ---------- 讯飞云端听写：浏览器只录音并 POST WAV，不依赖 Google 语音 ---------- */
-    if (useXfyunAsr && !isNetworkRetry) {
+      /* ---------- 讯飞云端听写：浏览器只录音并 POST WAV，不依赖 Google 语音 ---------- */
+      if (useXfyunAsr && !isNetworkRetry) {
+        clearCmdStartTimer()
+        clearCmdNoInputTimer()
+        clearCmdSilenceTimer()
+        releaseCmdMicStream()
+        cancelCmdRef.current = false
+        suppressWakeRestartRef.current = true
+        stopWakeRecognition(true)
+
+        cmdRunningRef.current = true
+        setIsCmdActive(true)
+        backendAsrAbortRef.current = new AbortController()
+        addLog(
+          '🎙️ 讯飞听写：请对着麦克风说话；停顿约 2.8 秒自动识别并发送，也可点「终止语音」。约 15 秒内完全无说话将自动结束。',
+        )
+
+        recordAndTranscribeXfyun({ signal: backendAsrAbortRef.current.signal })
+          .then((text) => {
+            if (cancelCmdRef.current) {
+              cancelCmdRef.current = false
+              scheduleWakeRestart(500)
+              return
+            }
+            if (text) {
+              onResultRef.current?.(text)
+            } else {
+              addLog(
+                '⏱️ 未识别到文字，请确认麦克风与网络，或在讯飞控制台已开通「语音听写（流式版）」。',
+              )
+            }
+            scheduleWakeRestart(600)
+          })
+          .catch((e) => {
+            if (cancelCmdRef.current) {
+              cancelCmdRef.current = false
+              scheduleWakeRestart(500)
+              return
+            }
+            const msg = e && e.message ? String(e.message) : ''
+            addLog(
+              msg ? `❌ 讯飞听写失败：${msg}` : '❌ 讯飞听写请求失败，请检查后端是否启动与网络。',
+            )
+            scheduleWakeRestart(600)
+          })
+          .finally(() => {
+            cmdRunningRef.current = false
+            setIsCmdActive(false)
+            suppressWakeRestartRef.current = false
+            backendAsrAbortRef.current = null
+          })
+        return
+      }
+
       clearCmdStartTimer()
       clearCmdNoInputTimer()
       clearCmdSilenceTimer()
       releaseCmdMicStream()
       cancelCmdRef.current = false
+      cmdHadSpeechRef.current = false
+      latestCmdTextRef.current = ''
       suppressWakeRestartRef.current = true
       stopWakeRecognition(true)
 
-      cmdRunningRef.current = true
-      setIsCmdActive(true)
-      backendAsrAbortRef.current = new AbortController()
-      addLog(
-        '🎙️ 讯飞听写：请对着麦克风说话；停顿约 2.8 秒自动识别并发送，也可点「终止语音」。约 15 秒内完全无说话将自动结束。',
-      )
+      cmdStartPendingRef.current = true
+      const prepDelay = micWarmRef.current ? 120 : 380
+      cmdStartTimerRef.current = setTimeout(() => {
+        cmdStartPendingRef.current = false
 
-      recordAndTranscribeXfyun({ signal: backendAsrAbortRef.current.signal })
-        .then((text) => {
-          if (cancelCmdRef.current) {
-            cancelCmdRef.current = false
-            scheduleWakeRestart(500)
-            return
-          }
-          if (text) {
-            onResultRef.current?.(text)
-          } else {
-            addLog('⏱️ 未识别到文字，请确认麦克风与网络，或在讯飞控制台已开通「语音听写（流式版）」。')
-          }
-          scheduleWakeRestart(600)
-        })
-        .catch((e) => {
-          if (cancelCmdRef.current) {
-            cancelCmdRef.current = false
-            scheduleWakeRestart(500)
-            return
-          }
-          const msg = e && e.message ? String(e.message) : ''
-          addLog(
-            msg
-              ? `❌ 讯飞听写失败：${msg}`
-              : '❌ 讯飞听写请求失败，请检查后端是否启动与网络。',
-          )
-          scheduleWakeRestart(600)
-        })
-        .finally(() => {
-          cmdRunningRef.current = false
-          setIsCmdActive(false)
+        if (!SpeechRecognitionRef.current) {
           suppressWakeRestartRef.current = false
-          backendAsrAbortRef.current = null
-        })
-      return
-    }
+          addLog('❌ 浏览器不支持语音识别，请使用 Chrome / Edge')
+          return
+        }
 
-    clearCmdStartTimer()
-    clearCmdNoInputTimer()
-    clearCmdSilenceTimer()
-    releaseCmdMicStream()
-    cancelCmdRef.current = false
-    cmdHadSpeechRef.current = false
-    latestCmdTextRef.current = ''
-    suppressWakeRestartRef.current = true
-    stopWakeRecognition(true)
+        if (!navigator.mediaDevices?.getUserMedia) {
+          suppressWakeRestartRef.current = false
+          addLog('❌ 当前环境无法访问麦克风')
+          return
+        }
 
-    cmdStartPendingRef.current = true
-    const prepDelay = micWarmRef.current ? 120 : 380
-    cmdStartTimerRef.current = setTimeout(() => {
-      cmdStartPendingRef.current = false
+        navigator.mediaDevices
+          .getUserMedia({ audio: CMD_AUDIO_CONSTRAINTS })
+          .then((stream) => {
+            cmdMicStreamRef.current = stream
+            micWarmRef.current = true
 
-      if (!SpeechRecognitionRef.current) {
-        suppressWakeRestartRef.current = false
-        addLog('❌ 浏览器不支持语音识别，请使用 Chrome / Edge')
-        return
-      }
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        suppressWakeRestartRef.current = false
-        addLog('❌ 当前环境无法访问麦克风')
-        return
-      }
-
-      navigator.mediaDevices.getUserMedia({ audio: CMD_AUDIO_CONSTRAINTS })
-        .then((stream) => {
-          cmdMicStreamRef.current = stream
-          micWarmRef.current = true
-
-          if (!isNetworkRetry) {
-            const track = stream.getAudioTracks?.()?.[0]
-            const label = (track?.label || '').trim()
-            addLog(
-              label
-                ? `🎤 当前使用的麦克风：${label}（戴耳机时请看是否是耳机上的麦；纯听歌耳机没有麦会用别的设备）`
-                : '🎤 已占用麦克风（设备名称不可用）。请到系统声音设置里确认默认输入是否为耳机麦或外置麦。',
-            )
-          }
-
-          const rec = createCommandRecognition()
-          if (!rec) {
-            releaseCmdMicStream()
-            suppressWakeRestartRef.current = false
-            addLog('❌ 浏览器不支持语音识别，请使用 Chrome / Edge')
-            return
-          }
-
-          cmdRecRef.current = rec
-          cmdRunningRef.current = true
-          setIsCmdActive(true)
-          if (!isNetworkRetry) {
-            addLog(
-              '🎙️ 正在聆听：无需特定分贝，取决于系统输入增益与浏览器；请对着默认麦克风正常说话。约 20 秒内若引擎完全识别不到字会超时；有字后停顿约 2.8 秒会发送。可随时「终止语音」。',
-            )
-          }
-
-          try {
-            rec.start()
-            clearCmdNoInputTimer()
-            cmdNoInputTimerRef.current = setTimeout(() => {
-              cmdNoInputTimerRef.current = null
-              if (!cmdRunningRef.current || cancelCmdRef.current) return
-              if (cmdHadSpeechRef.current) return
-              const oldRec = cmdRecRef.current
-              cmdSkipEmptyEndLogRef.current = true
+            if (!isNetworkRetry) {
+              const track = stream.getAudioTracks?.()?.[0]
+              const label = (track?.label || '').trim()
               addLog(
-                '⏱️ 聆听已结束：浏览器仍未识别到任何文字（没有固定「要多少分贝」）。请在 Windows「声音设置 → 输入」把音量滑块拉高、选对麦克风，或在属性里开启「麦克风加强」；笔记本建议距离麦 15cm 内、大声清晰说；排除蓝牙耳麦延迟。然后重新点语音。',
+                label
+                  ? `🎤 当前使用的麦克风：${label}（戴耳机时请看是否是耳机上的麦；纯听歌耳机没有麦会用别的设备）`
+                  : '🎤 已占用麦克风（设备名称不可用）。请到系统声音设置里确认默认输入是否为耳机麦或外置麦。',
               )
+            }
+
+            const rec = createCommandRecognition()
+            if (!rec) {
+              releaseCmdMicStream()
+              suppressWakeRestartRef.current = false
+              addLog('❌ 浏览器不支持语音识别，请使用 Chrome / Edge')
+              return
+            }
+
+            cmdRecRef.current = rec
+            cmdRunningRef.current = true
+            setIsCmdActive(true)
+            if (!isNetworkRetry) {
+              addLog(
+                '🎙️ 正在聆听：无需特定分贝，取决于系统输入增益与浏览器；请对着默认麦克风正常说话。约 20 秒内若引擎完全识别不到字会超时；有字后停顿约 2.8 秒会发送。可随时「终止语音」。',
+              )
+            }
+
+            try {
+              rec.start()
+              clearCmdNoInputTimer()
+              cmdNoInputTimerRef.current = setTimeout(() => {
+                cmdNoInputTimerRef.current = null
+                if (!cmdRunningRef.current || cancelCmdRef.current) return
+                if (cmdHadSpeechRef.current) return
+                const oldRec = cmdRecRef.current
+                cmdSkipEmptyEndLogRef.current = true
+                addLog(
+                  '⏱️ 聆听已结束：浏览器仍未识别到任何文字（没有固定「要多少分贝」）。请在 Windows「声音设置 → 输入」把音量滑块拉高、选对麦克风，或在属性里开启「麦克风加强」；笔记本建议距离麦 15cm 内、大声清晰说；排除蓝牙耳麦延迟。然后重新点语音。',
+                )
+                cmdRunningRef.current = false
+                cmdRecRef.current = null
+                setIsCmdActive(false)
+                suppressWakeRestartRef.current = false
+                releaseCmdMicStream()
+                scheduleWakeRestart(600)
+                try {
+                  oldRec?.abort()
+                } catch {
+                  try {
+                    oldRec?.stop()
+                  } catch {
+                    /* ignore */
+                  }
+                }
+              }, CMD_NO_INPUT_MS)
+            } catch {
               cmdRunningRef.current = false
               cmdRecRef.current = null
               setIsCmdActive(false)
-              suppressWakeRestartRef.current = false
               releaseCmdMicStream()
-              scheduleWakeRestart(600)
-              try {
-                oldRec?.abort()
-              } catch {
-                try {
-                  oldRec?.stop()
-                } catch { /* ignore */ }
-              }
-            }, CMD_NO_INPUT_MS)
-          } catch {
-            cmdRunningRef.current = false
-            cmdRecRef.current = null
-            setIsCmdActive(false)
-            releaseCmdMicStream()
-            clearCmdNoInputTimer()
-            clearCmdSilenceTimer()
+              clearCmdNoInputTimer()
+              clearCmdSilenceTimer()
+              suppressWakeRestartRef.current = false
+              addLog('❌ 语音识别启动失败，请等待 1 秒后再试')
+              scheduleWakeRestart(700)
+            }
+          })
+          .catch(() => {
             suppressWakeRestartRef.current = false
-            addLog('❌ 语音识别启动失败，请等待 1 秒后再试')
-            scheduleWakeRestart(700)
-          }
-        })
-        .catch(() => {
-          suppressWakeRestartRef.current = false
-          micWarmRef.current = false
-          addLog('❌ 麦克风权限被拒绝，请在浏览器地址栏左侧点击锁图标 → 允许麦克风访问')
-          wakeWantedRef.current = false
-          setIsWakeActive(false)
-        })
-    }, prepDelay)
-  }, [
-    addLog,
-    clearCmdNoInputTimer,
-    clearCmdSilenceTimer,
-    clearCmdStartTimer,
-    createCommandRecognition,
-    releaseCmdMicStream,
-    scheduleWakeRestart,
-    stopWakeRecognition,
-    useXfyunAsr,
-  ])
+            micWarmRef.current = false
+            addLog('❌ 麦克风权限被拒绝，请在浏览器地址栏左侧点击锁图标 → 允许麦克风访问')
+            wakeWantedRef.current = false
+            setIsWakeActive(false)
+          })
+      }, prepDelay)
+    },
+    [
+      addLog,
+      clearCmdNoInputTimer,
+      clearCmdSilenceTimer,
+      clearCmdStartTimer,
+      createCommandRecognition,
+      releaseCmdMicStream,
+      scheduleWakeRestart,
+      stopWakeRecognition,
+      useXfyunAsr,
+    ],
+  )
 
   useEffect(() => {
     scheduleNetworkRetryRef.current = (attempt) => {
-      window.setTimeout(() => {
-        if (cancelCmdRef.current) {
-          cmdNetworkRetryCountRef.current = 0
-          suppressWakeRestartRef.current = false
-          return
-        }
-        startCmdRecognition({ isNetworkRetry: true })
-      }, 650 + attempt * 400)
+      window.setTimeout(
+        () => {
+          if (cancelCmdRef.current) {
+            cmdNetworkRetryCountRef.current = 0
+            suppressWakeRestartRef.current = false
+            return
+          }
+          startCmdRecognition({ isNetworkRetry: true })
+        },
+        650 + attempt * 400,
+      )
     }
     return () => {
       scheduleNetworkRetryRef.current = null
@@ -580,7 +601,9 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
     if (backendAsrAbortRef.current) {
       try {
         backendAsrAbortRef.current.abort()
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       backendAsrAbortRef.current = null
       addLog('⏹️ 已终止语音识别')
       return
@@ -601,13 +624,24 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
     try {
       cmdRecRef.current?.abort()
     } catch {
-      try { cmdRecRef.current?.stop() } catch { /* ignore */ }
+      try {
+        cmdRecRef.current?.stop()
+      } catch {
+        /* ignore */
+      }
     }
     cmdRecRef.current = null
     releaseCmdMicStream()
     suppressWakeRestartRef.current = false
     scheduleWakeRestart(600)
-  }, [addLog, clearCmdNoInputTimer, clearCmdSilenceTimer, clearCmdStartTimer, releaseCmdMicStream, scheduleWakeRestart])
+  }, [
+    addLog,
+    clearCmdNoInputTimer,
+    clearCmdSilenceTimer,
+    clearCmdStartTimer,
+    releaseCmdMicStream,
+    scheduleWakeRestart,
+  ])
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -625,7 +659,13 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
     wakeRec.maxAlternatives = 5
 
     safeStartWakeRef.current = () => {
-      if (!wakeWantedRef.current || cmdRunningRef.current || wakeRunningRef.current || suppressWakeRestartRef.current) return
+      if (
+        !wakeWantedRef.current ||
+        cmdRunningRef.current ||
+        wakeRunningRef.current ||
+        suppressWakeRestartRef.current
+      )
+        return
       try {
         wakeRec.start()
         wakeRunningRef.current = true
@@ -719,8 +759,16 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
       cmdStartPendingRef.current = false
       wakeWantedRef.current = false
       suppressWakeRestartRef.current = true
-      try { wakeRec.stop() } catch { /* ignore */ }
-      try { cmdRecRef.current?.stop() } catch { /* ignore */ }
+      try {
+        wakeRec.stop()
+      } catch {
+        /* ignore */
+      }
+      try {
+        cmdRecRef.current?.stop()
+      } catch {
+        /* ignore */
+      }
       wakeRunningRef.current = false
       cmdRunningRef.current = false
       wakeRecRef.current = null
@@ -747,7 +795,9 @@ export default function useVoiceRecognition({ onResult, addLog, useXfyunAsr = fa
       setIsWakeActive(false)
       stopCmdRecognition()
       stopWakeRecognition(true)
-      setTimeout(() => { suppressWakeRestartRef.current = false }, 350)
+      setTimeout(() => {
+        suppressWakeRestartRef.current = false
+      }, 350)
       addLog('⚪ 唤醒监听已关闭')
       return
     }

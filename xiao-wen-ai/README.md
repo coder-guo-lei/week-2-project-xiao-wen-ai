@@ -333,14 +333,14 @@ xiaowen/
 
 技术说明：
 
-| 技术 / 模块 | 作用 |
-|---|---|
-| `re` | 从用户输入中提取“月份:120”这类标签和值 |
-| `csv` / `io` | 读取 CSV、TXT、TSV 表格文本 |
-| `openpyxl` | 读取 Excel 文件中的前两列数据 |
-| `FormData` | 前端上传本地数据文件 |
-| SVG | 前端绘制折线图、柱状图、坐标轴和点位 |
-| `useMemo` | 缓存图表坐标计算结果，提高渲染效率 |
+| 技术 / 模块  | 作用                                   |
+| ------------ | -------------------------------------- |
+| `re`         | 从用户输入中提取“月份:120”这类标签和值 |
+| `csv` / `io` | 读取 CSV、TXT、TSV 表格文本            |
+| `openpyxl`   | 读取 Excel 文件中的前两列数据          |
+| `FormData`   | 前端上传本地数据文件                   |
+| SVG          | 前端绘制折线图、柱状图、坐标轴和点位   |
+| `useMemo`    | 缓存图表坐标计算结果，提高渲染效率     |
 
 限制说明：
 
@@ -476,68 +476,68 @@ xiaowen/
 
 ### 1. 前端技术
 
-| 技术 | 用途 |
-|---|---|
-| React | 构建组件化用户界面 |
-| Vite | 前端开发服务器和打包工具 |
-| CSS | 页面布局、动画、卡片样式和响应式效果 |
-| Web Speech API | 语音识别（SpeechRecognition） |
-| `fetch` + Blob URL | 朗读：请求后端 `/api/tts` 播放 WAV |
-| SVG | 绘制折线图、柱状图、坐标轴和数据点 |
-| HTMLAudioElement | 音乐播放 |
-| localStorage | 保存指令历史、聊天历史、音量、音色偏好等 |
+| 技术               | 用途                                     |
+| ------------------ | ---------------------------------------- |
+| React              | 构建组件化用户界面                       |
+| Vite               | 前端开发服务器和打包工具                 |
+| CSS                | 页面布局、动画、卡片样式和响应式效果     |
+| Web Speech API     | 语音识别（SpeechRecognition）            |
+| `fetch` + Blob URL | 朗读：请求后端 `/api/tts` 播放 WAV       |
+| SVG                | 绘制折线图、柱状图、坐标轴和数据点       |
+| HTMLAudioElement   | 音乐播放                                 |
+| localStorage       | 保存指令历史、聊天历史、音量、音色偏好等 |
 
 主要组件：
 
-| 组件 | 作用 |
-|---|---|
-| `App.jsx` | 全局状态管理、接口请求、内容切换 |
-| `CommandInput` | 指令输入、语音按钮、唤醒按钮、历史指令 |
-| `ChatPanel` | AI 回复展示和朗读 |
-| `WeatherCard` | 天气结果展示 |
-| `MusicPlayer` | 音乐播放器 |
-| `ImagePreview` | 图片生成状态和结果展示 |
-| `ChartPanel` | 数据图表展示、文件上传、摘要统计和表格预览 |
-| `DefaultPanel` | 默认引导面板 |
-| `LogPanel` | 运行日志 |
-| `ModeBar` | 当前模式提示，例如普通助手、音乐播放、图片生成、模拟世界 |
-| `SelectionToolbar` | 划词翻译和朗读工具条 |
+| 组件               | 作用                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `App.jsx`          | 全局状态管理、接口请求、内容切换                         |
+| `CommandInput`     | 指令输入、语音按钮、唤醒按钮、历史指令                   |
+| `ChatPanel`        | AI 回复展示和朗读                                        |
+| `WeatherCard`      | 天气结果展示                                             |
+| `MusicPlayer`      | 音乐播放器                                               |
+| `ImagePreview`     | 图片生成状态和结果展示                                   |
+| `ChartPanel`       | 数据图表展示、文件上传、摘要统计和表格预览               |
+| `DefaultPanel`     | 默认引导面板                                             |
+| `LogPanel`         | 运行日志                                                 |
+| `ModeBar`          | 当前模式提示，例如普通助手、音乐播放、图片生成、模拟世界 |
+| `SelectionToolbar` | 划词翻译和朗读工具条                                     |
 
 主要 Hook：
 
-| Hook | 作用 |
-|---|---|
-| `useMusicPlayer` | 管理音乐播放、播放列表、音量、历史记录 |
-| `useVoiceRecognition` | 管理语音识别和唤醒词监听 |
+| Hook                  | 作用                                   |
+| --------------------- | -------------------------------------- |
+| `useMusicPlayer`      | 管理音乐播放、播放列表、音量、历史记录 |
+| `useVoiceRecognition` | 管理语音识别和唤醒词监听               |
 
 ---
 
 ### 2. 后端技术
 
-| 技术 | 用途 |
-|---|---|
-| Flask | 提供 HTTP API 服务 |
-| Flask-CORS | 解决前后端跨域问题 |
-| requests | 调用第三方接口 |
-| python-dotenv | 读取 `.env` 环境变量 |
-| zhdate | 农历与公历换算（1900–2100），写入对话系统提示 |
-| DashScope | AI 对话和 AI 文生图 |
-| DeepSeek（可选） | OpenAI 兼容对话 / 翻译兜底 |
-| 高德地图 API | 城市天气查询 |
-| subprocess / os.startfile | 启动本机白名单应用 |
-| csv / io | 解析 CSV、TXT、TSV 数据文件 |
-| openpyxl | 解析 Excel 数据文件 |
-| websockets（asyncio） | 讯飞 TTS：在线合成 v2 或超拟人 WebSocket |
+| 技术                      | 用途                                          |
+| ------------------------- | --------------------------------------------- |
+| Flask                     | 提供 HTTP API 服务                            |
+| Flask-CORS                | 解决前后端跨域问题                            |
+| requests                  | 调用第三方接口                                |
+| python-dotenv             | 读取 `.env` 环境变量                          |
+| zhdate                    | 农历与公历换算（1900–2100），写入对话系统提示 |
+| DashScope                 | AI 对话和 AI 文生图                           |
+| DeepSeek（可选）          | OpenAI 兼容对话 / 翻译兜底                    |
+| 高德地图 API              | 城市天气查询                                  |
+| subprocess / os.startfile | 启动本机白名单应用                            |
+| csv / io                  | 解析 CSV、TXT、TSV 数据文件                   |
+| openpyxl                  | 解析 Excel 数据文件                           |
+| websockets（asyncio）     | 讯飞 TTS：在线合成 v2 或超拟人 WebSocket      |
 
 主要接口：
 
-| 接口 | 方法 | 说明 |
-|---|---|---|
-| `/api/send-task` | POST | 接收用户指令，返回对应功能结果 |
-| `/api/image-status/<task_id>` | GET | 查询图片生成状态 |
-| `/api/generate-chart` | POST | 上传 CSV / TXT / Excel 文件并生成图表数据 |
-| `/api/translate-selection` | POST | 对划词内容进行翻译 |
-| `/api/tts` | POST | JSON：`text`、`voice` → 讯飞合成音频（默认 WAV），详见 `backend/.env.example` |
+| 接口                          | 方法 | 说明                                                                          |
+| ----------------------------- | ---- | ----------------------------------------------------------------------------- |
+| `/api/send-task`              | POST | 接收用户指令，返回对应功能结果                                                |
+| `/api/image-status/<task_id>` | GET  | 查询图片生成状态                                                              |
+| `/api/generate-chart`         | POST | 上传 CSV / TXT / Excel 文件并生成图表数据                                     |
+| `/api/translate-selection`    | POST | 对划词内容进行翻译                                                            |
+| `/api/tts`                    | POST | JSON：`text`、`voice` → 讯飞合成音频（默认 WAV），详见 `backend/.env.example` |
 
 后端核心逻辑：
 
@@ -549,17 +549,17 @@ xiaowen/
 
 常见返回类型：
 
-| type | 说明 |
-|---|---|
-| `chat` | 普通聊天或文字结果 |
-| `weather` | 天气查询 |
-| `music` | 音乐播放 |
-| `image_pending` | 图片生成中 |
-| `image` | 图片已生成 |
-| `chart` | 数据图表 |
-| `app` | 本机应用启动 |
-| `web` | 网页链接 |
-| `goodbye` | 告别并重置界面 |
+| type            | 说明               |
+| --------------- | ------------------ |
+| `chat`          | 普通聊天或文字结果 |
+| `weather`       | 天气查询           |
+| `music`         | 音乐播放           |
+| `image_pending` | 图片生成中         |
+| `image`         | 图片已生成         |
+| `chart`         | 数据图表           |
+| `app`           | 本机应用启动       |
+| `web`           | 网页链接           |
+| `goodbye`       | 告别并重置界面     |
 
 ---
 
@@ -772,23 +772,23 @@ backend/
 
 ### 1. 双模型与密钥
 
-| 变量 | 作用 |
-|------|------|
-| `DASHSCOPE_API_KEY` | 阿里云百炼：对话、文生图、VL、翻译主链路 |
+| 变量                       | 作用                                                              |
+| -------------------------- | ----------------------------------------------------------------- |
+| `DASHSCOPE_API_KEY`        | 阿里云百炼：对话、文生图、VL、翻译主链路                          |
 | `DEEPSEEK_API_KEY`（可选） | OpenAI 兼容接口：对话 / 翻译 / 知识库兜底，不能替代百炼生图与看图 |
-| `AMAP_KEY` | 高德：天气、地理编码（仅后端使用） |
+| `AMAP_KEY`                 | 高德：天气、地理编码（仅后端使用）                                |
 
 ### 2. 时间与农历可信性
 
-- **`LOCAL_TIMEZONE`**（IANA，默认 `Asia/Shanghai`）：服务端「此刻」的公历依据。  
-- **农历**：依赖 Python **`zhdate`**（已写入 `backend/requirements.txt`）。系统提示除「今天对应的农历」外，还提供 **当前农历年内锚点**（如正月初一、三月廿六、五月初五、八月十五）的 **公历对照**，避免模型将「阴历生日」错算成错误公历。  
+- **`LOCAL_TIMEZONE`**（IANA，默认 `Asia/Shanghai`）：服务端「此刻」的公历依据。
+- **农历**：依赖 Python **`zhdate`**（已写入 `backend/requirements.txt`）。系统提示除「今天对应的农历」外，还提供 **当前农历年内锚点**（如正月初一、三月廿六、五月初五、八月十五）的 **公历对照**，避免模型将「阴历生日」错算成错误公历。
 - **实现入口**：`backend/app.py` 中 `current_datetime_context_for_llm()`、`lunar_year_anchor_facts_for_llm()`。
 
 ### 3. 前端体验
 
-- **指令输入框**：发送结束或单次语音识别结束后自动重新聚焦，减少重复点击（`CommandInput.jsx`）。  
-- **语音**：单次聆听约 **20 秒**内若引擎完全无文字则超时（`useVoiceRecognition.js` 中 `CMD_NO_INPUT_MS`）；有字后约 **2.8 秒**无新变化则提交。  
-- **吉祥物「小文机器人」**：可拖拽、投掷与边缘反弹，位置存 `localStorage`（`XiaowenBot.jsx`）。  
+- **指令输入框**：发送结束或单次语音识别结束后自动重新聚焦，减少重复点击（`CommandInput.jsx`）。
+- **语音**：单次聆听约 **20 秒**内若引擎完全无文字则超时（`useVoiceRecognition.js` 中 `CMD_NO_INPUT_MS`）；有字后约 **2.8 秒**无新变化则提交。
+- **吉祥物「小文机器人」**：可拖拽、投掷与边缘反弹，位置存 `localStorage`（`XiaowenBot.jsx`）。
 - **开发代理**：`vite.config.js` 将 `/api` 代理到 `127.0.0.1:5001`，朗读与对话同源请求更稳定（`xfyunTts.js` 在 dev 下使用 `/api/tts`）。
 
 ### 4. 仓库根目录文档

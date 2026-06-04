@@ -37,7 +37,9 @@ export function getTtsVoiceFromStorage() {
       t = 'x4_xiaoyan'
       try {
         localStorage.setItem(VOICE_PREF_KEY, t)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     if (t) return normalizeTtsVoice(t)
     return 'x4_xiaoyan'

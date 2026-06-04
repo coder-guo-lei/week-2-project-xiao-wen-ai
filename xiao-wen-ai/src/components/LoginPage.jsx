@@ -74,7 +74,13 @@ export default function LoginPage() {
 
         <div className="login-switch">
           {isRegister ? '已有账号？' : '没有账号？'}
-          <button type="button" onClick={() => { setIsRegister(!isRegister); setError('') }}>
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(!isRegister)
+              setError('')
+            }}
+          >
             {isRegister ? '去登录' : '去注册'}
           </button>
         </div>

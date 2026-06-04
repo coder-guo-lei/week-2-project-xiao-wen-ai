@@ -16,7 +16,8 @@ const TEXT_FIELDS = [
 
 const SELECT_FIELDS = [
   {
-    key: 'language_style', label: '回复风格',
+    key: 'language_style',
+    label: '回复风格',
     options: [
       { value: 'casual', label: '轻松随意' },
       { value: 'formal', label: '正式专业' },
@@ -24,7 +25,8 @@ const SELECT_FIELDS = [
     ],
   },
   {
-    key: 'response_length', label: '回复长度',
+    key: 'response_length',
+    label: '回复长度',
     options: [
       { value: 'short', label: '简短' },
       { value: 'medium', label: '适中' },
@@ -105,7 +107,9 @@ export default function SettingsPanel({ onClose }) {
                 onChange={(e) => handleChange(field.key, e.target.value)}
               >
                 {field.options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -121,13 +125,17 @@ export default function SettingsPanel({ onClose }) {
         </div>
 
         {message && (
-          <div className={`settings-message${message === '保存成功' ? ' settings-message--ok' : ''}`}>
+          <div
+            className={`settings-message${message === '保存成功' ? ' settings-message--ok' : ''}`}
+          >
             {message}
           </div>
         )}
 
         <div className="settings-footer">
-          <button onClick={onClose} className="btn-ghost">取消</button>
+          <button onClick={onClose} className="btn-ghost">
+            取消
+          </button>
           <button onClick={handleSave} disabled={saving} className="btn-primary">
             {saving ? '保存中…' : '保存偏好'}
           </button>

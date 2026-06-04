@@ -116,23 +116,26 @@ export default function SelectionToolbar() {
   }, [])
 
   /** 与聊天区「朗读回复」相同：讯飞 TTS，音色随回复区男女偏好（localStorage） */
-  const speakText = useCallback(async (text = selectedText) => {
-    const raw = text !== undefined ? text : selectedText
-    const t = String(raw || '').trim()
-    if (!t) return
+  const speakText = useCallback(
+    async (text = selectedText) => {
+      const raw = text !== undefined ? text : selectedText
+      const t = String(raw || '').trim()
+      if (!t) return
 
-    stopSpeaking()
-    setTtsErr('')
-    setIsSpeaking(true)
-    try {
-      await playXfyunTts(t, ttsAudioRef, ttsObjectUrlRef)
-    } catch (e) {
-      console.error(e)
-      setTtsErr(e?.message || '朗读失败')
-    } finally {
-      setIsSpeaking(false)
-    }
-  }, [selectedText, stopSpeaking])
+      stopSpeaking()
+      setTtsErr('')
+      setIsSpeaking(true)
+      try {
+        await playXfyunTts(t, ttsAudioRef, ttsObjectUrlRef)
+      } catch (e) {
+        console.error(e)
+        setTtsErr(e?.message || '朗读失败')
+      } finally {
+        setIsSpeaking(false)
+      }
+    },
+    [selectedText, stopSpeaking],
+  )
 
   const copyTranslation = async () => {
     if (!translation) return

@@ -87,7 +87,10 @@ export default function FaceWellnessCamera({ onAnalyze, disabled = false }) {
           <h4>肤质与状态洞察</h4>
           <p>
             开启摄像头后抓拍正面人像，小文会从肤质、气色与神态氛围等角度给出护理参考与生活建议。
-            <span className="face-camera__disclaimer"> 结果仅供日常参考，不构成医疗或心理咨询。</span>
+            <span className="face-camera__disclaimer">
+              {' '}
+              结果仅供日常参考，不构成医疗或心理咨询。
+            </span>
           </p>
         </div>
       </div>
@@ -126,7 +129,12 @@ export default function FaceWellnessCamera({ onAnalyze, disabled = false }) {
             <button type="button" disabled={disabled} onClick={captureAndAnalyze}>
               {disabled ? '分析中…' : '抓拍并分析'}
             </button>
-            <button type="button" className="face-camera__btn-secondary" disabled={disabled} onClick={stopCamera}>
+            <button
+              type="button"
+              className="face-camera__btn-secondary"
+              disabled={disabled}
+              onClick={stopCamera}
+            >
               关闭摄像头
             </button>
           </>

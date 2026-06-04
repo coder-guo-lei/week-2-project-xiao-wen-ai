@@ -26,16 +26,15 @@ export default function ActivityDock({
       aria-label={collapsedTitle}
     >
       {!open && (
-        <button
-          type="button"
-          className="activity-bar"
-          onClick={onToggle}
-          aria-expanded={false}
-        >
-          <span className="activity-chevron" aria-hidden>▲</span>
+        <button type="button" className="activity-bar" onClick={onToggle} aria-expanded={false}>
+          <span className="activity-chevron" aria-hidden>
+            ▲
+          </span>
           <span className="activity-title">{collapsedTitle}</span>
           {dockTab === 'log' && lastLine ? (
-            <span className={`activity-preview ${lastLine.includes('❌') ? 'activity-preview--err' : ''}`}>
+            <span
+              className={`activity-preview ${lastLine.includes('❌') ? 'activity-preview--err' : ''}`}
+            >
               {lastLine}
             </span>
           ) : (

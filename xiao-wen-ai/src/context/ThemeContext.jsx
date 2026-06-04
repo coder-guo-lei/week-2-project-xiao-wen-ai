@@ -1,14 +1,7 @@
 /**
  * 主题 Context：light / dark / system 三模式，持久化到 storage，支持多端 WS 同步。
  */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { storage } from '../platform'
 
 const THEME_KEY = 'xiaowen-theme-mode'
@@ -67,20 +60,19 @@ export function ThemeProvider({ children }) {
     if (!fromSync) themeListeners.forEach((fn) => fn(next))
   }, [])
 
-  const setModeFromSync = useCallback((next) => {
-    setMode(next, { fromSync: true })
-  }, [setMode])
+  const setModeFromSync = useCallback(
+    (next) => {
+      setMode(next, { fromSync: true })
+    },
+    [setMode],
+  )
 
   const value = useMemo(
     () => ({ mode, resolved, setMode, setModeFromSync }),
     [mode, resolved, setMode, setModeFromSync],
   )
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {

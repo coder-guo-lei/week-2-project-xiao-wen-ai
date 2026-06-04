@@ -17,7 +17,12 @@ export default function PreferencesGuide({ onSetup, onDismiss }) {
   }
 
   return (
-    <div className="pref-guide-overlay" role="dialog" aria-modal="true" aria-labelledby="pref-guide-title">
+    <div
+      className="pref-guide-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pref-guide-title"
+    >
       <div className="pref-guide-card">
         <div className="pref-guide-icon">✨</div>
         <h3 id="pref-guide-title">欢迎，{name}！</h3>
@@ -27,10 +32,18 @@ export default function PreferencesGuide({ onSetup, onDismiss }) {
           也可稍后在右上角齿轮里随时修改。
         </p>
         <div className="pref-guide-actions">
-          <button type="button" className="pref-guide-btn pref-guide-btn--primary" onClick={handleSetup}>
+          <button
+            type="button"
+            className="pref-guide-btn pref-guide-btn--primary"
+            onClick={handleSetup}
+          >
             去设置偏好
           </button>
-          <button type="button" className="pref-guide-btn pref-guide-btn--ghost" onClick={handleDismiss}>
+          <button
+            type="button"
+            className="pref-guide-btn pref-guide-btn--ghost"
+            onClick={handleDismiss}
+          >
             稍后再说
           </button>
         </div>

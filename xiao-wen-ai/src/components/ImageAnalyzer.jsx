@@ -14,22 +14,30 @@ export default function ImageAnalyzer({ onAnalyze, disabled = false }) {
   const [dragging, setDragging] = useState(false) // 拖拽悬停时高亮边框
   const [question, setQuestion] = useState('') // 可选追问，一并 POST 给后端
 
-  const submitFile = useCallback((file) => {
-    if (!file || disabled) return
-    if (!file.type?.startsWith('image/')) return // 只接受图片 MIME
-    const url = URL.createObjectURL(file)
-    setPreview((old) => {
-      if (old) URL.revokeObjectURL(old) // 释放上一张预览，避免内存泄漏
-      return url
-    })
-    onAnalyze?.(file, question)
-  }, [disabled, onAnalyze, question])
+  const submitFile = useCallback(
+    (file) => {
+      if (!file || disabled) return
+      if (!file.type?.startsWith('image/')) return // 只接受图片 MIME
+      const url = URL.createObjectURL(file)
+      setPreview((old) => {
+        if (old) URL.revokeObjectURL(old) // 释放上一张预览，避免内存泄漏
+        return url
+      })
+      onAnalyze?.(file, question)
+    },
+    [disabled, onAnalyze, question],
+  )
 
   // 全局粘贴：从剪贴板里找第一张图片文件（用户 Ctrl+V）
-  const handlePaste = useCallback((event) => {
-    const file = Array.from(event.clipboardData?.files || []).find((item) => item.type.startsWith('image/'))
-    if (file) submitFile(file)
-  }, [submitFile])
+  const handlePaste = useCallback(
+    (event) => {
+      const file = Array.from(event.clipboardData?.files || []).find((item) =>
+        item.type.startsWith('image/'),
+      )
+      if (file) submitFile(file)
+    },
+    [submitFile],
+  )
 
   useEffect(() => {
     window.addEventListener('paste', handlePaste)
@@ -37,9 +45,12 @@ export default function ImageAnalyzer({ onAnalyze, disabled = false }) {
   }, [handlePaste])
 
   // 卸载或 preview 变化前释放 blob URL
-  useEffect(() => () => {
-    if (preview) URL.revokeObjectURL(preview)
-  }, [preview])
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview)
+    },
+    [preview],
+  )
 
   return (
     <section
@@ -52,7 +63,9 @@ export default function ImageAnalyzer({ onAnalyze, disabled = false }) {
       onDrop={(event) => {
         event.preventDefault()
         setDragging(false)
-        submitFile(Array.from(event.dataTransfer.files || []).find((item) => item.type.startsWith('image/')))
+        submitFile(
+          Array.from(event.dataTransfer.files || []).find((item) => item.type.startsWith('image/')),
+        )
       }}
     >
       <div className="image-analyzer__main">
@@ -63,9 +76,7 @@ export default function ImageAnalyzer({ onAnalyze, disabled = false }) {
         </div>
       </div>
 
-      {preview && (
-        <img className="image-analyzer__preview" src={preview} alt="待分析图片预览" />
-      )}
+      {preview && <img className="image-analyzer__preview" src={preview} alt="待分析图片预览" />}
 
       <textarea
         className="image-analyzer__question"

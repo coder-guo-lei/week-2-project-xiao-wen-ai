@@ -92,10 +92,19 @@ export default function CommandInput({
         >
           {isCmdActive ? '⏹️ 终止语音' : '🎤 语音'}
         </button>
-        <button type="button" onClick={toggleWake} disabled={!canToggleWake} className={`ci-btn ci-btn--wake ${isWakeActive ? 'is-on' : ''}`}>
+        <button
+          type="button"
+          onClick={toggleWake}
+          disabled={!canToggleWake}
+          className={`ci-btn ci-btn--wake ${isWakeActive ? 'is-on' : ''}`}
+        >
           {isWakeActive ? '⏹ 关闭唤醒' : '⚪ 唤醒'}
         </button>
-        <button onClick={() => onSend(task)} disabled={!canSubmit || !task.trim()} className="ci-btn ci-btn--send">
+        <button
+          onClick={() => onSend(task)}
+          disabled={!canSubmit || !task.trim()}
+          className="ci-btn ci-btn--send"
+        >
           {isSending ? '发送中…' : '发送'}
         </button>
       </div>
@@ -103,7 +112,12 @@ export default function CommandInput({
         <div className="ci-history" aria-label="常用指令历史">
           <span>常用：</span>
           {commandHistory.slice(0, 5).map((item) => (
-            <button key={item} type="button" onClick={() => onHistoryClick?.(item)} disabled={!canSubmit}>
+            <button
+              key={item}
+              type="button"
+              onClick={() => onHistoryClick?.(item)}
+              disabled={!canSubmit}
+            >
               {item}
             </button>
           ))}

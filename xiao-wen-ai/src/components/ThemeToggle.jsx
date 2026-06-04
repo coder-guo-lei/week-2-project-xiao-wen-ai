@@ -24,7 +24,9 @@ export default function ThemeToggle() {
           title={opt.label}
           onClick={() => setMode(opt.value)}
         >
-          <span className="theme-toggle-icon" aria-hidden>{opt.icon}</span>
+          <span className="theme-toggle-icon" aria-hidden>
+            {opt.icon}
+          </span>
           <span className="theme-toggle-label">{opt.label}</span>
         </button>
       ))}

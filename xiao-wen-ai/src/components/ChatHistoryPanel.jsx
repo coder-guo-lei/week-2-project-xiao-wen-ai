@@ -36,7 +36,7 @@ export default function ChatHistoryPanel() {
         setLoading(false)
       }
     },
-    [pageSize]
+    [pageSize],
   )
 
   // 首次加载 & 切换会话
@@ -94,9 +94,7 @@ export default function ChatHistoryPanel() {
       <div className="chp-body">
         {loading && page === 1 && <div className="chp-loading">加载中…</div>}
 
-        {!loading && logs.length === 0 && (
-          <div className="chp-empty">暂无对话记录</div>
-        )}
+        {!loading && logs.length === 0 && <div className="chp-empty">暂无对话记录</div>}
 
         {logs.map((log) => (
           <div key={log.id} className={`chp-item chp-${log.role}`}>

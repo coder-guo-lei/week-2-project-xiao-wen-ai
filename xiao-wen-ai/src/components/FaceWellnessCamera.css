@@ -7,7 +7,9 @@
   border: 1px dashed var(--tool-card-dash);
   border-radius: 18px;
   background: var(--tool-card-bg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    var(--shadow-panel);
   margin-top: 14px;
 }
 
@@ -114,7 +116,9 @@
   line-height: 1.55;
   outline: none;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -155,7 +159,10 @@
   font-size: 14px;
   background: linear-gradient(135deg, var(--accent-soft), var(--accent-strong));
   box-shadow: 0 8px 22px rgba(20, 122, 110, 0.22);
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .face-camera__actions button:hover:not(:disabled) {

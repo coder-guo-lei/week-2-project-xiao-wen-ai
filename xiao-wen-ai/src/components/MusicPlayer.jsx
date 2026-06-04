@@ -26,12 +26,28 @@ export default function MusicPlayer({ music }) {
   const [showQishuiLogin, setShowQishuiLogin] = useState(true) // 汽水模式：是否展开内嵌登录 iframe
   const [qishuiFrameKey, setQishuiFrameKey] = useState(0) // 改 key 强制重载汽水播放 iframe
   const {
-    audioRef, previewUrl, songName, currentProvider, qishuiUrl, qishuiEmbedUrl, isPlaying,
-    currentTime, duration, playHistory, playIndex,
-    audioError, volume, setVolume, jumpToTrack,
-    removeTrack, clearHistory,
-    togglePlayPause, playPrevious, playNext,
-    handleSeek, audioHandlers,
+    audioRef,
+    previewUrl,
+    songName,
+    currentProvider,
+    qishuiUrl,
+    qishuiEmbedUrl,
+    isPlaying,
+    currentTime,
+    duration,
+    playHistory,
+    playIndex,
+    audioError,
+    volume,
+    setVolume,
+    jumpToTrack,
+    removeTrack,
+    clearHistory,
+    togglePlayPause,
+    playPrevious,
+    playNext,
+    handleSeek,
+    audioHandlers,
   } = music
   // 汽水音乐：不走 <audio>，用官方 embed 页面播（依赖用户浏览器已登录）
   const isQishuiMode = currentProvider === 'qishui' && qishuiEmbedUrl
@@ -85,7 +101,12 @@ export default function MusicPlayer({ music }) {
                 <button type="button" className="mp-qishui-ghost" onClick={refreshQishuiFrame}>
                   已登录，刷新
                 </button>
-                <a href={qishuiUrl || qishuiEmbedUrl} target="_blank" rel="noreferrer" className="mp-qishui-open">
+                <a
+                  href={qishuiUrl || qishuiEmbedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mp-qishui-open"
+                >
                   新窗口播放
                 </a>
               </div>
@@ -140,17 +161,37 @@ export default function MusicPlayer({ music }) {
         {!isQishuiMode && (
           <>
             <div className="mp-controls">
-              <button className="mp-skip" onClick={playPrevious} disabled={!playHistory.length} title="上一首">⏮</button>
-              <button className={`mp-play ${isPlaying ? 'is-paused' : ''}`} onClick={togglePlayPause}>
+              <button
+                className="mp-skip"
+                onClick={playPrevious}
+                disabled={!playHistory.length}
+                title="上一首"
+              >
+                ⏮
+              </button>
+              <button
+                className={`mp-play ${isPlaying ? 'is-paused' : ''}`}
+                onClick={togglePlayPause}
+              >
                 {isPlaying ? '⏸' : '▶'}
               </button>
-              <button className="mp-skip" onClick={playNext} disabled={!playHistory.length} title="下一首">⏭</button>
+              <button
+                className="mp-skip"
+                onClick={playNext}
+                disabled={!playHistory.length}
+                title="下一首"
+              >
+                ⏭
+              </button>
             </div>
 
             {/* progress */}
             <div className="mp-progress">
               <div className="mp-progress-track" onMouseDown={handleSeek}>
-                <div className="mp-progress-fill" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
+                <div
+                  className="mp-progress-fill"
+                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                />
               </div>
               <div className="mp-time">
                 <span>{formatTime(currentTime)}</span>
@@ -161,7 +202,15 @@ export default function MusicPlayer({ music }) {
             {/* volume */}
             <div className="mp-vol">
               <span className="mp-vol-icon">🔊</span>
-              <input type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="mp-vol-slider" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                className="mp-vol-slider"
+              />
             </div>
 
             {/* key=previewUrl：换歌时强制重挂载 audio 元素，触发重新加载 */}
@@ -211,7 +260,9 @@ export default function MusicPlayer({ music }) {
                 const i = playHistory.length - 1 - revIdx
                 return (
                   <li key={item.id}>
-                    <div className={`mp-history-item mp-playlist-item ${i === playIndex ? 'is-active' : ''}`}>
+                    <div
+                      className={`mp-history-item mp-playlist-item ${i === playIndex ? 'is-active' : ''}`}
+                    >
                       <button
                         type="button"
                         className="mp-playlist-play"

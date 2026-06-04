@@ -61,7 +61,11 @@ export default function LogPanel({
           {typeof syncConnected === 'boolean' && (
             <span
               className={`lp-sync ${syncConnected ? 'lp-sync-on' : 'lp-sync-off'}`}
-              title={syncConnected ? `多端同步已连接（${platformLabel || 'Web'}）` : '同步未连接，仅本页日志'}
+              title={
+                syncConnected
+                  ? `多端同步已连接（${platformLabel || 'Web'}）`
+                  : '同步未连接，仅本页日志'
+              }
             />
           )}
         </div>
@@ -82,10 +86,7 @@ export default function LogPanel({
         {logs.length === 0 ? (
           <div className="lp-empty">暂无运行记录</div>
         ) : (
-          <div
-            className="lp-virtual-inner"
-            style={{ height: virtualizer.getTotalSize() }}
-          >
+          <div className="lp-virtual-inner" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const text = logs[virtualRow.index]
               return (

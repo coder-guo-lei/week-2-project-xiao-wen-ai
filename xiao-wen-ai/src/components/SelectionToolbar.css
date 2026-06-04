@@ -30,7 +30,10 @@
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .selection-toolbar button:hover:not(:disabled) {

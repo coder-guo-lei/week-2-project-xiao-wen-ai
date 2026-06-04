@@ -88,7 +88,10 @@
   font-size: 12px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.12s;
 }
 
 .tts-dual-item:hover:not(:disabled) {

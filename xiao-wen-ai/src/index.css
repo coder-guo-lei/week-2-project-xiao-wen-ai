@@ -58,9 +58,9 @@
   --glass-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 
   /* ═══ 字体 ═══ */
-  --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-display: "Fraunces", "Songti SC", "STSong", Georgia, serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+  --font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-display: 'Fraunces', 'Songti SC', 'STSong', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
 
   /* ═══ 字号阶梯 ═══ */
   --text-2xs: 0.64rem;
@@ -100,15 +100,10 @@
 
   /* ═══ 新拟态阴影 ═══ */
   --shadow-raised:
-    0 1px 3px rgba(0, 0, 0, 0.25),
-    0 8px 32px rgba(0, 0, 0, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.25), 0 8px 32px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-sunken:
-    inset 0 2px 6px rgba(0, 0, 0, 0.35),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.03);
-  --shadow-accent:
-    0 4px 20px rgba(74, 144, 217, 0.25),
-    0 2px 8px rgba(124, 92, 252, 0.15);
+  --shadow-sunken: inset 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 -1px 2px rgba(255, 255, 255, 0.03);
+  --shadow-accent: 0 4px 20px rgba(74, 144, 217, 0.25), 0 2px 8px rgba(124, 92, 252, 0.15);
   --shadow-float: var(--glass-shadow);
 
   /* ═══ 工具卡 ═══ */
@@ -149,7 +144,7 @@
   --shadow-panel: var(--shadow-raised);
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   --bg-deep: #f4f7fb;
   --bg-mid: #e8eef6;
   --bg-accent: #dce6f2;
@@ -191,7 +186,7 @@ body {
   min-height: 100vh;
 }
 
-[data-theme="light"] body {
+[data-theme='light'] body {
   background-image: linear-gradient(
     135deg,
     var(--bg-deep) 0%,

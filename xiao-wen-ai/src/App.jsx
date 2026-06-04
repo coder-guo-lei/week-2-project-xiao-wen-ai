@@ -69,7 +69,13 @@ function readCachedClientLocation(maxAgeMs = 15 * 60 * 1000) {
     const raw = sessionStorage.getItem(LAST_LOC_KEY)
     if (!raw) return null
     const o = JSON.parse(raw)
-    if (o == null || typeof o.lat !== 'number' || typeof o.lng !== 'number' || typeof o.t !== 'number') return null
+    if (
+      o == null ||
+      typeof o.lat !== 'number' ||
+      typeof o.lng !== 'number' ||
+      typeof o.t !== 'number'
+    )
+      return null
     if (Date.now() - o.t > maxAgeMs) return null
     return { lat: o.lat, lng: o.lng, accuracy: o.accuracy }
   } catch {
@@ -80,8 +86,13 @@ function readCachedClientLocation(maxAgeMs = 15 * 60 * 1000) {
 function writeCachedClientLocation(loc) {
   if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return
   try {
-    sessionStorage.setItem(LAST_LOC_KEY, JSON.stringify({ lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, t: Date.now() }))
-  } catch { /* ignore */ }
+    sessionStorage.setItem(
+      LAST_LOC_KEY,
+      JSON.stringify({ lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, t: Date.now() }),
+    )
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -130,7 +141,9 @@ function App() {
       const saved = localStorage.getItem(LOG_PANEL_OPEN_KEY)
       if (saved === '1') return true
       if (saved === '0') return false
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return false
   })
   // ---------- 左栏主展示区：根据 contentType 切换子组件 ----------
@@ -212,10 +225,13 @@ function App() {
   }, [syncSend])
 
   /** 追加一条右侧日志（本地 + 广播其它端/标签页） */
-  const addLog = useCallback((text) => {
-    setLogList((prev) => [...prev, text])
-    syncSend('LOG_APPEND', text)
-  }, [syncSend])
+  const addLog = useCallback(
+    (text) => {
+      setLogList((prev) => [...prev, text])
+      syncSend('LOG_APPEND', text)
+    },
+    [syncSend],
+  )
 
   /** 清空右侧运行日志 */
   const clearLogList = useCallback(() => {
@@ -226,7 +242,11 @@ function App() {
   const toggleLogPanel = useCallback(() => setLogPanelOpen((v) => !v), [])
 
   useEffect(() => {
-    try { localStorage.setItem(LOG_PANEL_OPEN_KEY, logPanelOpen ? '1' : '0') } catch { /* ignore */ }
+    try {
+      localStorage.setItem(LOG_PANEL_OPEN_KEY, logPanelOpen ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
   }, [logPanelOpen])
 
   /** 去重后把指令插到历史最前，并写入 localStorage */
@@ -234,8 +254,15 @@ function App() {
     const trimmed = cmdText.trim()
     if (!trimmed) return
     setCommandHistory((prev) => {
-      const next = [trimmed, ...prev.filter((item) => item !== trimmed)].slice(0, MAX_COMMAND_HISTORY)
-      try { localStorage.setItem(COMMAND_HISTORY_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      const next = [trimmed, ...prev.filter((item) => item !== trimmed)].slice(
+        0,
+        MAX_COMMAND_HISTORY,
+      )
+      try {
+        localStorage.setItem(COMMAND_HISTORY_KEY, JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
       return next
     })
   }, [])
@@ -252,7 +279,11 @@ function App() {
         { role: 'user', content: userContent },
         { role: 'assistant', content: assistantContent },
       ].slice(-MAX_CHAT_HISTORY)
-      try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      try {
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(next))
+      } catch {
+        /* ignore */
+      }
       return next
     })
   }, [])
@@ -260,7 +291,11 @@ function App() {
   /** 告别 resetUI 等场景：清空多轮上下文 */
   const clearChatHistory = useCallback(() => {
     setChatHistory([])
-    try { localStorage.removeItem(CHAT_HISTORY_KEY) } catch { /* ignore */ }
+    try {
+      localStorage.removeItem(CHAT_HISTORY_KEY)
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   /** 清空天气/图/聊天/图表/音乐等「内容态」，不切 contentType（由调用方决定） */
@@ -291,66 +326,74 @@ function App() {
   // “再见小文”会先展示后端的告别语，再调用 returnToInitialView，避免用户看不到回应。
 
   /** DashScope 异步文生图：定时 GET /api/image-status/:taskId 直到成功/失败/超时 */
-  const startImagePolling = useCallback((taskId) => {
-    setImageGenerating(true)
-    setImageElapsed(0)
-    setContentType('image')
-    imagePollDeadlineRef.current = Date.now() + IMAGE_POLL_MAX_MS
+  const startImagePolling = useCallback(
+    (taskId) => {
+      setImageGenerating(true)
+      setImageElapsed(0)
+      setContentType('image')
+      imagePollDeadlineRef.current = Date.now() + IMAGE_POLL_MAX_MS
 
-    elapsedTimerRef.current = setInterval(() => {
-      setImageElapsed((s) => s + 1)
-    }, 1000)
+      elapsedTimerRef.current = setInterval(() => {
+        setImageElapsed((s) => s + 1)
+      }, 1000)
 
-    pollTimerRef.current = setInterval(async () => {
-      try {
-        if (imagePollDeadlineRef.current != null && Date.now() > imagePollDeadlineRef.current) {
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          if (imagePollDeadlineRef.current != null && Date.now() > imagePollDeadlineRef.current) {
+            clearInterval(pollTimerRef.current)
+            clearInterval(elapsedTimerRef.current)
+            setImageGenerating(false)
+            setImagePrompt('生成超时，请稍后重试')
+            addLog('❌ 图片生成超时（请检查网络或稍后重试）')
+            imagePollDeadlineRef.current = null
+            return
+          }
+          const r = await apiFetch(`/api/image-status/${taskId}`)
+          const d = await r.json()
+          if (d.status === 'succeeded' && d.imageUrl) {
+            clearInterval(pollTimerRef.current)
+            clearInterval(elapsedTimerRef.current)
+            imagePollDeadlineRef.current = null
+            setImageUrl(d.imageUrl)
+            setImageGenerating(false)
+            addLog('🎨 图片生成完成！')
+          } else if (d.status === 'failed') {
+            clearInterval(pollTimerRef.current)
+            clearInterval(elapsedTimerRef.current)
+            imagePollDeadlineRef.current = null
+            setImageGenerating(false)
+            setImagePrompt('生成失败，请重试')
+            addLog('❌ 图片生成失败')
+          }
+        } catch {
           clearInterval(pollTimerRef.current)
           clearInterval(elapsedTimerRef.current)
-          setImageGenerating(false)
-          setImagePrompt('生成超时，请稍后重试')
-          addLog('❌ 图片生成超时（请检查网络或稍后重试）')
           imagePollDeadlineRef.current = null
-          return
+          setImageGenerating(false)
+          addLog('❌ 查询图片状态失败')
         }
-        const r = await apiFetch(`/api/image-status/${taskId}`)
-        const d = await r.json()
-        if (d.status === 'succeeded' && d.imageUrl) {
-          clearInterval(pollTimerRef.current)
-          clearInterval(elapsedTimerRef.current)
-          imagePollDeadlineRef.current = null
-          setImageUrl(d.imageUrl)
-          setImageGenerating(false)
-          addLog('🎨 图片生成完成！')
-        } else if (d.status === 'failed') {
-          clearInterval(pollTimerRef.current)
-          clearInterval(elapsedTimerRef.current)
-          imagePollDeadlineRef.current = null
-          setImageGenerating(false)
-          setImagePrompt('生成失败，请重试')
-          addLog('❌ 图片生成失败')
-        }
-      } catch {
-        clearInterval(pollTimerRef.current)
-        clearInterval(elapsedTimerRef.current)
-        imagePollDeadlineRef.current = null
-        setImageGenerating(false)
-        addLog('❌ 查询图片状态失败')
-      }
-    }, 1500)
-  }, [addLog])
+      }, 1500)
+    },
+    [addLog],
+  )
 
   // 卸载根组件时务必清定时器，避免 StrictMode 双挂载或热更新泄漏
-  useEffect(() => () => {
-    clearInterval(pollTimerRef.current)
-    clearInterval(elapsedTimerRef.current)
-  }, [])
+  useEffect(
+    () => () => {
+      clearInterval(pollTimerRef.current)
+      clearInterval(elapsedTimerRef.current)
+    },
+    [],
+  )
 
   const refreshUserApps = useCallback(async () => {
     try {
       const r = await apiFetch('/api/user-apps')
       const d = await r.json()
       if (d.code === 200 && Array.isArray(d.apps)) setUserAppList(d.apps)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   useEffect(() => {
@@ -371,146 +414,164 @@ function App() {
    * 核心：POST /api/send-task，按返回 type 切换界面与副作用。
    * 语音/示例按钮/历史点击最终都走到这里。
    */
-  const autoSendTask = useCallback(async (cmdText) => {
-    if (!cmdText.trim() || isSending) return
-    setIsSending(true)
-    setTask(cmdText)
-    rememberCommand(cmdText)
-    addLog(`📝 识别指令：${cmdText}`)
+  const autoSendTask = useCallback(
+    async (cmdText) => {
+      if (!cmdText.trim() || isSending) return
+      setIsSending(true)
+      setTask(cmdText)
+      rememberCommand(cmdText)
+      addLog(`📝 识别指令：${cmdText}`)
 
-    try {
-      const location = await fetchClientLocation(7000)
-      const payload = { task: cmdText, history: chatHistory, sessionId }
-      if (location) payload.location = location
+      try {
+        const location = await fetchClientLocation(7000)
+        const payload = { task: cmdText, history: chatHistory, sessionId }
+        if (location) payload.location = location
 
-      const res = await apiFetch('/api/send-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json()
-      const apiErr =
-        !res.ok || (typeof data.code === 'number' && data.code !== 200)
-      if (apiErr) {
-        const msg = data.reply || `请求失败（HTTP ${res.status}）`
-        addLog(`❌ ${msg}`)
-        setChatReply(msg)
-        setContentType('chat')
-        setTask('')
-        setIsSending(false)
-        return
-      }
-      addLog(`🤖 小文回复：${data.reply}`)
-      setMode(data.mode || 'normal')
-      setModeLabel(data.modeLabel || '普通助手')
-      setWorldState(data.worldState || null)
-      setQuickActions(data.quickActions || [])
-      setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
-      resetAllContent()
-
-      if (data.resetUI) {
-        clearChatHistory()
-        setChatReply(data.reply ?? '')
-        setContentType('chat')
-        window.setTimeout(() => {
-          returnToInitialView()
-        }, 1800)
-      } else if (data.extraData) {
-        setWeatherData(data.extraData)
-        setContentType('weather')
-      } else if (data.type === 'chart' && data.chartData) {
-        setChartData(data.chartData)
-        setContentType('chart')
-      } else if (data.type === 'chat' || data.type === 'app') {
-        setChatReply(data.reply ?? '')
-        if (data.type === 'chat') updateChatHistory(cmdText, data.reply ?? '')
-        setContentType('chat')
-      } else if (data.type === 'image_pending' && data.taskId) {
-        setImagePrompt(data.prompt || 'AI生成图片')
-        setImageUrl('')
-        startImagePolling(data.taskId)
-      } else if (data.imageUrl) {
-        setImageUrl(data.imageUrl)
-        setImagePrompt(data.prompt || 'AI生成图片')
-        setContentType('image')
-      } else if (data.type === 'music' && data.previewUrl) {
-        const title = data.songName || '未知歌曲'
-        music.enqueueTrack(data.previewUrl, title, {
-          provider: data.musicProvider || 'audio',
-          qishuiUrl: data.qishuiUrl || '',
-          qishuiEmbedUrl: data.qishuiEmbedUrl || '',
+        const res = await apiFetch('/api/send-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         })
-        setContentType('music')
-      } else if (data.type === 'music_control' && data.musicAction) {
-        let switched = false
-        if (data.musicAction === 'next') switched = music.playNext()
-        else if (data.musicAction === 'prev') switched = music.playPrevious()
-        if (!switched) {
-          addLog('⚠️ 播放列表为空，请先说「随便放首歌」或点一首再试「换一首」。')
+        const data = await res.json()
+        const apiErr = !res.ok || (typeof data.code === 'number' && data.code !== 200)
+        if (apiErr) {
+          const msg = data.reply || `请求失败（HTTP ${res.status}）`
+          addLog(`❌ ${msg}`)
+          setChatReply(msg)
+          setContentType('chat')
+          setTask('')
+          setIsSending(false)
+          return
         }
-        setContentType('music')
-      } else if (data.type === 'web') {
-        const url = String(data.previewUrl || '').trim()
-        const replyHead = String(data.reply || '').trim()
-        const lines = []
-        if (replyHead) lines.push(replyHead)
-        if (url && /^https?:\/\//i.test(url)) {
-          let opened = null
-          try {
-            opened = window.open(url, '_blank', 'noopener,noreferrer')
-          } catch {
-            /* 部分环境禁止脚本打开窗口 */
+        addLog(`🤖 小文回复：${data.reply}`)
+        setMode(data.mode || 'normal')
+        setModeLabel(data.modeLabel || '普通助手')
+        setWorldState(data.worldState || null)
+        setQuickActions(data.quickActions || [])
+        setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
+        resetAllContent()
+
+        if (data.resetUI) {
+          clearChatHistory()
+          setChatReply(data.reply ?? '')
+          setContentType('chat')
+          window.setTimeout(() => {
+            returnToInitialView()
+          }, 1800)
+        } else if (data.extraData) {
+          setWeatherData(data.extraData)
+          setContentType('weather')
+        } else if (data.type === 'chart' && data.chartData) {
+          setChartData(data.chartData)
+          setContentType('chart')
+        } else if (data.type === 'chat' || data.type === 'app') {
+          setChatReply(data.reply ?? '')
+          if (data.type === 'chat') updateChatHistory(cmdText, data.reply ?? '')
+          setContentType('chat')
+        } else if (data.type === 'image_pending' && data.taskId) {
+          setImagePrompt(data.prompt || 'AI生成图片')
+          setImageUrl('')
+          startImagePolling(data.taskId)
+        } else if (data.imageUrl) {
+          setImageUrl(data.imageUrl)
+          setImagePrompt(data.prompt || 'AI生成图片')
+          setContentType('image')
+        } else if (data.type === 'music' && data.previewUrl) {
+          const title = data.songName || '未知歌曲'
+          music.enqueueTrack(data.previewUrl, title, {
+            provider: data.musicProvider || 'audio',
+            qishuiUrl: data.qishuiUrl || '',
+            qishuiEmbedUrl: data.qishuiEmbedUrl || '',
+          })
+          setContentType('music')
+        } else if (data.type === 'music_control' && data.musicAction) {
+          let switched = false
+          if (data.musicAction === 'next') switched = music.playNext()
+          else if (data.musicAction === 'prev') switched = music.playPrevious()
+          if (!switched) {
+            addLog('⚠️ 播放列表为空，请先说「随便放首歌」或点一首再试「换一首」。')
           }
-          lines.push(`链接：${url}`)
-          lines.push(
-            opened
-              ? '（已尝试在新标签页打开；若无页面请检查是否被拦截或稍候再点上方链接。）'
-              : '（未打开新标签页：语音/发送后请求是异步的，浏览器常会拦截自动弹窗。请点击上方蓝色链接打开。）',
-          )
-        } else if (url) {
-          lines.push(`链接：${url}`)
+          setContentType('music')
+        } else if (data.type === 'web') {
+          const url = String(data.previewUrl || '').trim()
+          const replyHead = String(data.reply || '').trim()
+          const lines = []
+          if (replyHead) lines.push(replyHead)
+          if (url && /^https?:\/\//i.test(url)) {
+            let opened = null
+            try {
+              opened = window.open(url, '_blank', 'noopener,noreferrer')
+            } catch {
+              /* 部分环境禁止脚本打开窗口 */
+            }
+            lines.push(`链接：${url}`)
+            lines.push(
+              opened
+                ? '（已尝试在新标签页打开；若无页面请检查是否被拦截或稍候再点上方链接。）'
+                : '（未打开新标签页：语音/发送后请求是异步的，浏览器常会拦截自动弹窗。请点击上方蓝色链接打开。）',
+            )
+          } else if (url) {
+            lines.push(`链接：${url}`)
+          }
+          setChatReply(lines.join('\n'))
+          setContentType('chat')
+        } else {
+          setContentType('default')
         }
-        setChatReply(lines.join('\n'))
-        setContentType('chat')
-      } else {
-        setContentType('default')
+
+        setTimeout(() => {
+          feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      } catch (err) {
+        const detail = err?.message || String(err)
+        const hint = /fetch|network|Failed to fetch/i.test(detail)
+          ? '请确认 Python 后端已在 127.0.0.1:5001 运行'
+          : detail
+        addLog(`❌ 请求失败：${hint}`)
+        console.error(err)
+        setMode('normal')
+        setModeLabel(/fetch|network|Failed to fetch/i.test(detail) ? '后端未连接' : '请求异常')
+        setWorldState(null)
+        setQuickActions([])
+        setWorkflowSteps([])
+        resetAllContent()
       }
-
-      setTimeout(() => {
-        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 100)
-
-    } catch (err) {
-      const detail = err?.message || String(err)
-      const hint = /fetch|network|Failed to fetch/i.test(detail)
-        ? '请确认 Python 后端已在 127.0.0.1:5001 运行'
-        : detail
-      addLog(`❌ 请求失败：${hint}`)
-      console.error(err)
-      setMode('normal')
-      setModeLabel(/fetch|network|Failed to fetch/i.test(detail) ? '后端未连接' : '请求异常')
-      setWorldState(null)
-      setQuickActions([])
-      setWorkflowSteps([])
-      resetAllContent()
-    }
-    setTask('')
-    setIsSending(false)
-  }, [addLog, returnToInitialView, resetAllContent, music, startImagePolling, isSending, rememberCommand, chatHistory, updateChatHistory, clearChatHistory, sessionId])
+      setTask('')
+      setIsSending(false)
+    },
+    [
+      addLog,
+      returnToInitialView,
+      resetAllContent,
+      music,
+      startImagePolling,
+      isSending,
+      rememberCommand,
+      chatHistory,
+      updateChatHistory,
+      clearChatHistory,
+      sessionId,
+    ],
+  )
 
   /** DefaultPanel 快捷示例：摄像头肤质入口滚动定位，不走后端 */
-  const handleDefaultExample = useCallback((example) => {
-    if (!example?.text) return
-    if (example.type === 'face_camera') {
-      addLog('📷 已定位「肤质与状态洞察」：请开启摄像头并点击「抓拍并分析」')
-      setContentType('default')
-      requestAnimationFrame(() => {
-        document.getElementById('face-wellness-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
-      return
-    }
-    autoSendTask(example.text)
-  }, [addLog, autoSendTask])
+  const handleDefaultExample = useCallback(
+    (example) => {
+      if (!example?.text) return
+      if (example.type === 'face_camera') {
+        addLog('📷 已定位「肤质与状态洞察」：请开启摄像头并点击「抓拍并分析」')
+        setContentType('default')
+        requestAnimationFrame(() => {
+          document
+            .getElementById('face-wellness-anchor')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+        return
+      }
+      autoSendTask(example.text)
+    },
+    [addLog, autoSendTask],
+  )
 
   const voice = useVoiceRecognition({
     onResult: (text) => {
@@ -524,47 +585,50 @@ function App() {
   })
 
   /** POST /api/generate-chart（multipart），成功后 setChartData + workflow */
-  const generateChartFromFile = useCallback(async (file) => {
-    if (!file || isGeneratingChart) return
-    setIsGeneratingChart(true)
-    setContentType('chart')
-    setChartData(null)
-    setWorkflowSteps([
-      { title: '接收文件', detail: file.name || '本地数据文件' },
-      { title: '解析数据', detail: '读取前两列作为名称和值' },
-    ])
-    addLog(`📊 生成图表：${file.name || '数据文件'}`)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('task', task || '生成柱状图')
-      const res = await apiFetch('/api/generate-chart', {
-        method: 'POST',
-        body: formData,
-      })
-      const data = await res.json()
-      if (data.type !== 'chart' || !data.chartData) {
-        throw new Error(data.reply || '图表生成失败')
-      }
-      setChartData(data.chartData)
-      setMode(data.mode || 'chart')
-      setModeLabel(data.modeLabel || '数据可视化')
-      setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
-      addLog(`✅ ${data.reply || '图表生成完成'}`)
-    } catch (err) {
-      console.error(err)
-      setChatReply(err.message || '图表生成失败，请检查文件格式。')
-      setContentType('chat')
+  const generateChartFromFile = useCallback(
+    async (file) => {
+      if (!file || isGeneratingChart) return
+      setIsGeneratingChart(true)
+      setContentType('chart')
+      setChartData(null)
       setWorkflowSteps([
         { title: '接收文件', detail: file.name || '本地数据文件' },
-        { title: '生成失败', detail: '请上传 CSV / TXT / Excel，前两列为名称和值' },
+        { title: '解析数据', detail: '读取前两列作为名称和值' },
       ])
-      addLog('❌ 图表生成失败')
-    } finally {
-      setIsGeneratingChart(false)
-    }
-  }, [addLog, isGeneratingChart, task])
+      addLog(`📊 生成图表：${file.name || '数据文件'}`)
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('task', task || '生成柱状图')
+        const res = await apiFetch('/api/generate-chart', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (data.type !== 'chart' || !data.chartData) {
+          throw new Error(data.reply || '图表生成失败')
+        }
+        setChartData(data.chartData)
+        setMode(data.mode || 'chart')
+        setModeLabel(data.modeLabel || '数据可视化')
+        setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
+        addLog(`✅ ${data.reply || '图表生成完成'}`)
+      } catch (err) {
+        console.error(err)
+        setChatReply(err.message || '图表生成失败，请检查文件格式。')
+        setContentType('chat')
+        setWorkflowSteps([
+          { title: '接收文件', detail: file.name || '本地数据文件' },
+          { title: '生成失败', detail: '请上传 CSV / TXT / Excel，前两列为名称和值' },
+        ])
+        addLog('❌ 图表生成失败')
+      } finally {
+        setIsGeneratingChart(false)
+      }
+    },
+    [addLog, isGeneratingChart, task],
+  )
 
   const handleCancelAddApp = useCallback(() => {
     setAddAppDraft(null)
@@ -623,72 +687,89 @@ function App() {
     }
   }, [addAppDraft, addAppNameInput, addLog, refreshUserApps])
 
-  const handleRemoveUserApp = useCallback(async (name) => {
-    try {
-      const res = await apiFetch(`/api/user-apps?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (data.code === 200) {
-        addLog(`✅ ${data.message}`)
-        refreshUserApps()
-      } else {
-        addLog(`❌ ${data.message || '移除失败'}`)
+  const handleRemoveUserApp = useCallback(
+    async (name) => {
+      try {
+        const res = await apiFetch(`/api/user-apps?name=${encodeURIComponent(name)}`, {
+          method: 'DELETE',
+        })
+        const data = await res.json()
+        if (data.code === 200) {
+          addLog(`✅ ${data.message}`)
+          refreshUserApps()
+        } else {
+          addLog(`❌ ${data.message || '移除失败'}`)
+        }
+      } catch {
+        addLog('❌ 移除请求失败')
       }
-    } catch {
-      addLog('❌ 移除请求失败')
-    }
-  }, [addLog, refreshUserApps])
+    },
+    [addLog, refreshUserApps],
+  )
 
   /** POST /api/analyze-image，百炼 VL；失败时把 workflow 最后一步设为错误说明 */
-  const analyzeLocalImage = useCallback(async (file, question = '', options = {}) => {
-    if (!file || isAnalyzingImage) return
-    const kind = options.kind || ''
-    setIsAnalyzingImage(true)
-    setContentType('chat')
-    setChatReply(kind === 'face_wellness' ? '正在分析人像与护理参考，请稍候…' : '正在分析图片，请稍候...')
-    const recvDetail = kind === 'face_wellness' ? '摄像头人像抓拍' : (file.name || '本地图片')
-    setWorkflowSteps([
-      { title: '接收图片', detail: recvDetail },
-      { title: '上传图片', detail: kind === 'face_wellness' ? '发送到肤质与状态洞察接口' : '发送到后端图片理解接口' },
-    ])
-    addLog(kind === 'face_wellness' ? '📷 肤质与状态分析（摄像头）' : `🖼️ 分析图片：${file.name || '粘贴图片'}`)
+  const analyzeLocalImage = useCallback(
+    async (file, question = '', options = {}) => {
+      if (!file || isAnalyzingImage) return
+      const kind = options.kind || ''
+      setIsAnalyzingImage(true)
+      setContentType('chat')
+      setChatReply(
+        kind === 'face_wellness' ? '正在分析人像与护理参考，请稍候…' : '正在分析图片，请稍候...',
+      )
+      const recvDetail = kind === 'face_wellness' ? '摄像头人像抓拍' : file.name || '本地图片'
+      setWorkflowSteps([
+        { title: '接收图片', detail: recvDetail },
+        {
+          title: '上传图片',
+          detail: kind === 'face_wellness' ? '发送到肤质与状态洞察接口' : '发送到后端图片理解接口',
+        },
+      ])
+      addLog(
+        kind === 'face_wellness'
+          ? '📷 肤质与状态分析（摄像头）'
+          : `🖼️ 分析图片：${file.name || '粘贴图片'}`,
+      )
 
-    try {
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('question', question)
-      formData.append('kind', kind)
-      const res = await apiFetch('/api/analyze-image', {
-        method: 'POST',
-        body: formData,
-      })
-      const data = await res.json()
-      if (typeof data.code === 'number' && data.code !== 200) {
-        const msg = data.reply || '图片分析失败'
-        setChatReply(msg)
+      try {
+        const formData = new FormData()
+        formData.append('image', file)
+        formData.append('question', question)
+        formData.append('kind', kind)
+        const res = await apiFetch('/api/analyze-image', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (typeof data.code === 'number' && data.code !== 200) {
+          const msg = data.reply || '图片分析失败'
+          setChatReply(msg)
+          setWorkflowSteps([
+            { title: '接收图片', detail: file.name || '本地图片' },
+            { title: '分析失败', detail: msg },
+          ])
+          addLog(`❌ ${msg}`)
+          return
+        }
+        setChatReply(data.reply || '图片分析完成，但没有返回内容。')
+        setMode(data.mode || 'vision')
+        setModeLabel(data.modeLabel || '图片理解')
+        setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
+        addLog('✅ 图片分析完成')
+      } catch (err) {
+        console.error(err)
+        setChatReply('图片分析失败，请确认后端服务已启动，并检查图片格式。')
         setWorkflowSteps([
           { title: '接收图片', detail: file.name || '本地图片' },
-          { title: '分析失败', detail: msg },
+          { title: '分析失败', detail: '后端服务未连接或图片上传异常' },
         ])
-        addLog(`❌ ${msg}`)
-        return
+        addLog('❌ 图片分析失败')
+      } finally {
+        setIsAnalyzingImage(false)
       }
-      setChatReply(data.reply || '图片分析完成，但没有返回内容。')
-      setMode(data.mode || 'vision')
-      setModeLabel(data.modeLabel || '图片理解')
-      setWorkflowSteps(Array.isArray(data.workflow) ? data.workflow : [])
-      addLog('✅ 图片分析完成')
-    } catch (err) {
-      console.error(err)
-      setChatReply('图片分析失败，请确认后端服务已启动，并检查图片格式。')
-      setWorkflowSteps([
-        { title: '接收图片', detail: file.name || '本地图片' },
-        { title: '分析失败', detail: '后端服务未连接或图片上传异常' },
-      ])
-      addLog('❌ 图片分析失败')
-    } finally {
-      setIsAnalyzingImage(false)
-    }
-  }, [addLog, isAnalyzingImage])
+    },
+    [addLog, isAnalyzingImage],
+  )
 
   const stageTitle = STAGE_TITLES[contentType] || STAGE_TITLES.default
 
@@ -696,144 +777,180 @@ function App() {
     <div className="app-shell">
       <LoginParticleBg className="app-shell-bg" ambient />
       <div className="app">
-      <SelectionToolbar />
-      <XiaowenBot />
-      <header className="app-topbar">
-        <div className="app-brand">
-          <div className="app-logo-icon" aria-hidden>W</div>
-          <div className="app-brand-text">
-            <span className="app-logo">小文</span>
-            <span className="app-subtitle">智能语音助手</span>
-          </div>
-        </div>
-        <ModeBar
-          variant="top"
-          mode={mode}
-          modeLabel={modeLabel}
-          worldState={worldState}
-          quickActions={quickActions}
-          onQuickAction={autoSendTask}
-        />
-        <div className="app-topbar-actions">
-          <ThemeToggle />
-          <button
-            className="app-settings-btn"
-            onClick={() => setShowSettings(true)}
-            title="偏好设置"
-            aria-label="偏好设置"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-          <button
-            className="app-logout-btn"
-            onClick={() => { logout(); navigate('/login', { replace: true }) }}
-            title="退出登录"
-            aria-label="退出登录"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <div className="app-workspace">
-        <header className="composer">
-          <CommandInput
-            task={task}
-            setTask={setTask}
-            onSend={autoSendTask}
-            isCmdActive={voice.isCmdActive}
-            isSending={isSending}
-            startCmd={voice.startCmdRecognition}
-            stopCmd={voice.stopCmdRecognition}
-            toggleWake={voice.toggleWakeMode}
-            isWakeActive={voice.isWakeActive}
-            commandHistory={commandHistory}
-            onHistoryClick={autoSendTask}
-          />
-        </header>
-
-        <section className="stage" aria-label={stageTitle}>
-          <div className="stage-head">
-            <h2 className="stage-title" ref={feedbackRef}>
-              <span className="stage-title-icon" aria-hidden>✨</span>
-              {stageTitle}
-            </h2>
-            <span className="stage-badge">{modeLabel}</span>
-          </div>
-          <div className={`stage-body panel-content panel-content--${contentType}`}>
-            <div className="feedback-stack">
-              {contentType === 'chat' && (
-                <ChatPanel
-                  reply={chatReply}
-                  history={chatHistory}
-                  onClearHistory={() => {
-                    clearChatHistory()
-                    setChatReply('')
-                  }}
-                />
-              )}
-              {contentType === 'chart' && <ChartPanel data={chartData} onUpload={generateChartFromFile} disabled={isGeneratingChart} />}
-              {contentType === 'weather' && <WeatherCard data={weatherData} />}
-              {contentType === 'music' && music.previewUrl && <MusicPlayer music={music} />}
-              {contentType === 'image' && (imageUrl || imageGenerating) && (
-                <ImagePreview imageUrl={imageUrl} prompt={imagePrompt} generating={imageGenerating} elapsed={imageElapsed} />
-              )}
-              {contentType === 'default' && (
-                <>
-                  <ImageAnalyzer onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
-                  <FaceWellnessCamera onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
-                  <ChartPanel onUpload={generateChartFromFile} disabled={isGeneratingChart} />
-                  <DefaultPanel
-                    isCmdActive={voice.isCmdActive}
-                    isWakeActive={voice.isWakeActive}
-                    onExampleClick={handleDefaultExample}
-                    userExePickSupported={userExePickSupported}
-                    pickBrowseBusy={pickBrowseBusy}
-                    userAppList={userAppList}
-                    addAppDraft={addAppDraft}
-                    addAppNameInput={addAppNameInput}
-                    onAddAppNameChange={setAddAppNameInput}
-                    onBrowsePickExe={handleBrowsePickExe}
-                    onCancelAddApp={handleCancelAddApp}
-                    onConfirmAddApp={handleConfirmAddApp}
-                    onRemoveUserApp={handleRemoveUserApp}
-                  />
-                </>
-              )}
-              <WorkflowPanel steps={workflowSteps} />
+        <SelectionToolbar />
+        <XiaowenBot />
+        <header className="app-topbar">
+          <div className="app-brand">
+            <div className="app-logo-icon" aria-hidden>
+              W
+            </div>
+            <div className="app-brand-text">
+              <span className="app-logo">小文</span>
+              <span className="app-subtitle">智能语音助手</span>
             </div>
           </div>
-        </section>
+          <ModeBar
+            variant="top"
+            mode={mode}
+            modeLabel={modeLabel}
+            worldState={worldState}
+            quickActions={quickActions}
+            onQuickAction={autoSendTask}
+          />
+          <div className="app-topbar-actions">
+            <ThemeToggle />
+            <button
+              className="app-settings-btn"
+              onClick={() => setShowSettings(true)}
+              title="偏好设置"
+              aria-label="偏好设置"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+            <button
+              className="app-logout-btn"
+              onClick={() => {
+                logout()
+                navigate('/login', { replace: true })
+              }}
+              title="退出登录"
+              aria-label="退出登录"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
-        <ActivityDock
-          logs={logList}
-          open={logPanelOpen}
-          onToggle={toggleLogPanel}
-          onClear={clearLogList}
-          dockTab={rightTab}
-          onDockTabChange={setRightTab}
-          historyPanel={<ChatHistoryPanel />}
-          syncConnected={syncConnected}
-          platformLabel={platformLabel}
-        />
-      </div>
-      {showGuide && (
-        <PreferencesGuide
-          onSetup={() => {
-            setShowGuide(false)
-            setShowSettings(true)
-          }}
-          onDismiss={() => setShowGuide(false)}
-        />
-      )}
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+        <div className="app-workspace">
+          <header className="composer">
+            <CommandInput
+              task={task}
+              setTask={setTask}
+              onSend={autoSendTask}
+              isCmdActive={voice.isCmdActive}
+              isSending={isSending}
+              startCmd={voice.startCmdRecognition}
+              stopCmd={voice.stopCmdRecognition}
+              toggleWake={voice.toggleWakeMode}
+              isWakeActive={voice.isWakeActive}
+              commandHistory={commandHistory}
+              onHistoryClick={autoSendTask}
+            />
+          </header>
+
+          <section className="stage" aria-label={stageTitle}>
+            <div className="stage-head">
+              <h2 className="stage-title" ref={feedbackRef}>
+                <span className="stage-title-icon" aria-hidden>
+                  ✨
+                </span>
+                {stageTitle}
+              </h2>
+              <span className="stage-badge">{modeLabel}</span>
+            </div>
+            <div className={`stage-body panel-content panel-content--${contentType}`}>
+              <div className="feedback-stack">
+                {contentType === 'chat' && (
+                  <ChatPanel
+                    reply={chatReply}
+                    history={chatHistory}
+                    onClearHistory={() => {
+                      clearChatHistory()
+                      setChatReply('')
+                    }}
+                  />
+                )}
+                {contentType === 'chart' && (
+                  <ChartPanel
+                    data={chartData}
+                    onUpload={generateChartFromFile}
+                    disabled={isGeneratingChart}
+                  />
+                )}
+                {contentType === 'weather' && <WeatherCard data={weatherData} />}
+                {contentType === 'music' && music.previewUrl && <MusicPlayer music={music} />}
+                {contentType === 'image' && (imageUrl || imageGenerating) && (
+                  <ImagePreview
+                    imageUrl={imageUrl}
+                    prompt={imagePrompt}
+                    generating={imageGenerating}
+                    elapsed={imageElapsed}
+                  />
+                )}
+                {contentType === 'default' && (
+                  <>
+                    <ImageAnalyzer onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
+                    <FaceWellnessCamera onAnalyze={analyzeLocalImage} disabled={isAnalyzingImage} />
+                    <ChartPanel onUpload={generateChartFromFile} disabled={isGeneratingChart} />
+                    <DefaultPanel
+                      isCmdActive={voice.isCmdActive}
+                      isWakeActive={voice.isWakeActive}
+                      onExampleClick={handleDefaultExample}
+                      userExePickSupported={userExePickSupported}
+                      pickBrowseBusy={pickBrowseBusy}
+                      userAppList={userAppList}
+                      addAppDraft={addAppDraft}
+                      addAppNameInput={addAppNameInput}
+                      onAddAppNameChange={setAddAppNameInput}
+                      onBrowsePickExe={handleBrowsePickExe}
+                      onCancelAddApp={handleCancelAddApp}
+                      onConfirmAddApp={handleConfirmAddApp}
+                      onRemoveUserApp={handleRemoveUserApp}
+                    />
+                  </>
+                )}
+                <WorkflowPanel steps={workflowSteps} />
+              </div>
+            </div>
+          </section>
+
+          <ActivityDock
+            logs={logList}
+            open={logPanelOpen}
+            onToggle={toggleLogPanel}
+            onClear={clearLogList}
+            dockTab={rightTab}
+            onDockTabChange={setRightTab}
+            historyPanel={<ChatHistoryPanel />}
+            syncConnected={syncConnected}
+            platformLabel={platformLabel}
+          />
+        </div>
+        {showGuide && (
+          <PreferencesGuide
+            onSetup={() => {
+              setShowGuide(false)
+              setShowSettings(true)
+            }}
+            onDismiss={() => setShowGuide(false)}
+          />
+        )}
+        {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
       </div>
     </div>
   )

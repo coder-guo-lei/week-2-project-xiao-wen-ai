@@ -70,7 +70,9 @@
   color: var(--text-primary);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .login-form input::placeholder {
@@ -91,7 +93,7 @@
   font-size: 13px;
 }
 
-.login-form button[type="submit"] {
+.login-form button[type='submit'] {
   height: 44px;
   border: none;
   border-radius: 10px;
@@ -100,16 +102,18 @@
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
   margin-top: 4px;
 }
 
-.login-form button[type="submit"]:hover {
+.login-form button[type='submit']:hover {
   opacity: 0.92;
   transform: translateY(-1px);
 }
 
-.login-form button[type="submit"]:disabled {
+.login-form button[type='submit']:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;

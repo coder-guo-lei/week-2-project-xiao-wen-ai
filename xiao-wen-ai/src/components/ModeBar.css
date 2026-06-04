@@ -89,7 +89,9 @@
   font: inherit;
   font-size: var(--text-xs);
   cursor: pointer;
-  transition: transform var(--duration-fast) ease, opacity var(--duration-fast) ease;
+  transition:
+    transform var(--duration-fast) ease,
+    opacity var(--duration-fast) ease;
 }
 
 .mode-bar__actions button:hover {
@@ -98,8 +100,13 @@
 }
 
 @keyframes modePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 @media (max-width: 760px) {

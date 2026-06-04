@@ -113,20 +113,30 @@ export async function recordAndTranscribeXfyun(opts = {}) {
   const stopHardware = async () => {
     try {
       workletNode?.disconnect()
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       proc?.disconnect()
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       source.disconnect()
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       mute.disconnect()
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     stream.getTracks().forEach((t) => t.stop())
     try {
       await ctx.close()
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   const FETCH_TIMEOUT_MS = 45000
@@ -173,8 +183,7 @@ export async function recordAndTranscribeXfyun(opts = {}) {
           void finish('silence')
         }
       }
-      const elapsed =
-        (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
+      const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
       if (elapsed >= maxMs) void finish('max')
     }
 

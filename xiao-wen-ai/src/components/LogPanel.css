@@ -1,8 +1,17 @@
 /* LogPanel.css — 右侧运行日志列表与滚动区 */
-.lp { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.lp {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
 .lp-toolbar {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  flex-shrink: 0; margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
 }
 .lp-head-row {
   display: flex;
@@ -11,7 +20,9 @@
   min-width: 0;
 }
 .lp-toolbar-actions {
-  display: flex; align-items: center; gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 .lp-sync {
@@ -37,7 +48,9 @@
 }
 .lp-clear {
   flex-shrink: 0;
-  font-size: 12px; padding: 5px 10px; border-radius: 8px;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
   border: 1px solid var(--card-border);
   background: var(--card-bg-alt);
   color: var(--text-secondary);
@@ -50,7 +63,9 @@
 }
 .lp-collapse {
   flex-shrink: 0;
-  font-size: 12px; padding: 5px 10px; border-radius: 8px;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
   border: 1px solid var(--card-border);
   background: var(--card-bg-alt);
   color: var(--text-secondary);
@@ -68,12 +83,16 @@
   font-size: 13px;
 }
 .lp-body {
-  flex: 1; min-height: 0; overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid var(--card-border);
-  border-radius: 12px; padding: 12px 14px;
+  border-radius: 12px;
+  padding: 12px 14px;
   background: var(--card-bg-alt);
-  font-size: 13px; line-height: 1.75;
+  font-size: 13px;
+  line-height: 1.75;
   contain: strict;
   will-change: scroll-position;
   position: relative;
@@ -92,5 +111,9 @@
   overflow-wrap: anywhere;
   padding-bottom: 2px;
 }
-.lp-ok { color: var(--text-secondary); }
-.lp-err { color: #ef4444; }
+.lp-ok {
+  color: var(--text-secondary);
+}
+.lp-err {
+  color: #ef4444;
+}

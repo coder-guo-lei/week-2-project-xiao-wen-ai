@@ -2,7 +2,12 @@
  * ChatPanel.jsx — 对话面板：历史记录 + 最新回复朗读/复制
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cleanupTtsAudio, getTtsVoiceFromStorage, playXfyunTts, VOICE_PREF_KEY } from '../utils/xfyunTts'
+import {
+  cleanupTtsAudio,
+  getTtsVoiceFromStorage,
+  playXfyunTts,
+  VOICE_PREF_KEY,
+} from '../utils/xfyunTts'
 import TtsVoiceDualPicker from './TtsVoiceDualPicker'
 import { ttsVoiceLabel } from '../utils/ttsVoices'
 import ChatExportMenu from './ChatExportMenu'
@@ -28,7 +33,9 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
   useEffect(() => {
     try {
       localStorage.setItem(VOICE_PREF_KEY, voiceType)
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [voiceType])
 
   useEffect(() => {
@@ -39,10 +46,13 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
     })
   }, [reply])
 
-  useEffect(() => () => {
-    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current)
-    cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
-  }, [])
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current)
+      cleanupTtsAudio(ttsAudioRef, ttsObjectUrlRef)
+    },
+    [],
+  )
 
   const trimmed = String(reply || '').trim()
 
@@ -109,11 +119,7 @@ export default function ChatPanel({ reply, history = [], onClearHistory }) {
         </div>
       </div>
 
-      <ChatHistoryView
-        history={history}
-        reply={reply}
-        maxRoundsHint={MAX_ROUNDS_HINT}
-      />
+      <ChatHistoryView history={history} reply={reply} maxRoundsHint={MAX_ROUNDS_HINT} />
 
       <div className={`cp-latest ${isSpeaking ? 'cp-latest--speaking' : ''}`}>
         <div className="cp-latest-head">

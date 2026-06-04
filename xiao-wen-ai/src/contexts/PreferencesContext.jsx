@@ -66,11 +66,7 @@ export function PreferencesProvider({ children }) {
     [preferences, ready, shouldShowGuide, refreshPreferences],
   )
 
-  return (
-    <PreferencesContext.Provider value={value}>
-      {children}
-    </PreferencesContext.Provider>
-  )
+  return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>
 }
 
 export function usePreferences() {

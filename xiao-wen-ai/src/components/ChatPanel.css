@@ -1,18 +1,31 @@
 /* ChatPanel.css — 对话区布局、正文滚动、句高亮、复制行、朗读控件样式 */
 /* ===== Chat Panel 根与标题 ===== */
 .cp {
-  width: 100%; height: 100%; display: flex;
-  flex-direction: column; gap: 10px; min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
 }
 .cp-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
 }
 .cp-head-main {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 15px; font-weight: 600; color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
 }
-.cp-head-icon { font-size: 20px; }
+.cp-head-icon {
+  font-size: 20px;
+}
 .cp-head-actions {
   display: flex;
   align-items: center;
@@ -71,7 +84,11 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform .15s, opacity .2s, background .2s, border-color .2s;
+  transition:
+    transform 0.15s,
+    opacity 0.2s,
+    background 0.2s,
+    border-color 0.2s;
 }
 .cp-copy-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -79,7 +96,7 @@
   border-color: var(--accent);
 }
 .cp-copy-btn:disabled {
-  opacity: .45;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -146,7 +163,9 @@
   outline: none;
   cursor: pointer;
 }
-.cp-tts-select:focus { border-color: var(--accent); }
+.cp-tts-select:focus {
+  border-color: var(--accent);
+}
 .cp-tts-btn {
   height: 36px;
   padding: 0 14px;
@@ -157,14 +176,17 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform .15s, opacity .2s, background .2s;
+  transition:
+    transform 0.15s,
+    opacity 0.2s,
+    background 0.2s;
 }
 .cp-tts-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   background: var(--hover-bg);
 }
 .cp-tts-btn:disabled {
-  opacity: .45;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .cp-tts-btn--primary {
@@ -182,12 +204,16 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
   animation: cp-reading-shine 1.4s linear infinite;
 }
 @keyframes cp-reading-shine {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 .cp-tts-btn--primary:hover:not(:disabled) {
   background: linear-gradient(
@@ -211,4 +237,3 @@
 .cp-tts-engine {
   max-width: min(240px, 55%);
 }
-

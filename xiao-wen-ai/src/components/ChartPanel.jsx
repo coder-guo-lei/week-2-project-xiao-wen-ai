@@ -89,12 +89,17 @@ export default function ChartPanel({ data, onUpload, disabled }) {
           <div>
             <h3>数据图表</h3>
             <p>
-              可直接说「帮我生成一份数据和柱状图」，系统会自动给出示例数据；也可输入「一月:120 二月:180」这类数字，或上传
-              CSV / Excel。
+              可直接说「帮我生成一份数据和柱状图」，系统会自动给出示例数据；也可输入「一月:120
+              二月:180」这类数字，或上传 CSV / Excel。
             </p>
           </div>
           <label className={`chart-upload ${disabled ? 'is-disabled' : ''}`}>
-            <input type="file" accept=".csv,.txt,.tsv,.xlsx,.xls" onChange={handleFileChange} disabled={disabled} />
+            <input
+              type="file"
+              accept=".csv,.txt,.tsv,.xlsx,.xls"
+              onChange={handleFileChange}
+              disabled={disabled}
+            />
             上传数据文件
           </label>
         </div>
@@ -103,7 +108,9 @@ export default function ChartPanel({ data, onUpload, disabled }) {
   }
 
   const isLine = data.chartType === 'line'
-  const polyline = points.map((item, index) => `${geometry.xOf(index)},${geometry.yOf(item.value)}`).join(' ')
+  const polyline = points
+    .map((item, index) => `${geometry.xOf(index)},${geometry.yOf(item.value)}`)
+    .join(' ')
   const barLayout = computeBarLayout(geometry, points)
 
   return (
@@ -113,25 +120,59 @@ export default function ChartPanel({ data, onUpload, disabled }) {
         <div>
           <p className="chart-eyebrow">DATA VISUALIZATION</p>
           <h3>{data.title || '数据图表'}</h3>
-          <span>{data.source || '文本数据'} · {isLine ? '折线图' : '柱状图'}</span>
+          <span>
+            {data.source || '文本数据'} · {isLine ? '折线图' : '柱状图'}
+          </span>
         </div>
         <label className={`chart-upload ${disabled ? 'is-disabled' : ''}`}>
-          <input type="file" accept=".csv,.txt,.tsv,.xlsx,.xls" onChange={handleFileChange} disabled={disabled} />
+          <input
+            type="file"
+            accept=".csv,.txt,.tsv,.xlsx,.xls"
+            onChange={handleFileChange}
+            disabled={disabled}
+          />
           上传数据文件
         </label>
       </div>
 
       {/* 后端 summary 与前端 points 兜底展示 */}
       <div className="chart-summary" aria-label="数据摘要">
-        <div><span>数据量</span><strong>{data.summary?.count ?? points.length}</strong></div>
-        <div><span>合计</span><strong>{formatNumber(data.summary?.total ?? points.reduce((sum, item) => sum + Number(item.value || 0), 0))}</strong></div>
-        <div><span>最高</span><strong>{data.summary?.maxLabel}: {formatNumber(data.summary?.maxValue ?? 0)}</strong></div>
-        <div><span>最低</span><strong>{data.summary?.minLabel}: {formatNumber(data.summary?.minValue ?? 0)}</strong></div>
+        <div>
+          <span>数据量</span>
+          <strong>{data.summary?.count ?? points.length}</strong>
+        </div>
+        <div>
+          <span>合计</span>
+          <strong>
+            {formatNumber(
+              data.summary?.total ?? points.reduce((sum, item) => sum + Number(item.value || 0), 0),
+            )}
+          </strong>
+        </div>
+        <div>
+          <span>最高</span>
+          <strong>
+            {data.summary?.maxLabel}: {formatNumber(data.summary?.maxValue ?? 0)}
+          </strong>
+        </div>
+        <div>
+          <span>最低</span>
+          <strong>
+            {data.summary?.minLabel}: {formatNumber(data.summary?.minValue ?? 0)}
+          </strong>
+        </div>
       </div>
 
       {/* SVG：网格 + 坐标轴 + 折线或柱子 + X 轴文字 */}
-      <div className="chart-canvas" role="img" aria-label={`${data.title || '图表'}，共 ${points.length} 组数据`}>
-        <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} preserveAspectRatio="xMidYMid meet">
+      <div
+        className="chart-canvas"
+        role="img"
+        aria-label={`${data.title || '图表'}，共 ${points.length} 组数据`}
+      >
+        <svg
+          viewBox={`0 0 ${geometry.width} ${geometry.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
           <defs>
             <linearGradient id="chartLineGlow" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#3da89a" />
@@ -150,14 +191,33 @@ export default function ChartPanel({ data, onUpload, disabled }) {
             const value = geometry.max - tick * span
             return (
               <g key={tick} className="chart-grid-row">
-                <line x1={geometry.padding.left} y1={y} x2={geometry.width - geometry.padding.right} y2={y} />
-                <text x={geometry.padding.left - 10} y={y + 4}>{formatNumber(value)}</text>
+                <line
+                  x1={geometry.padding.left}
+                  y1={y}
+                  x2={geometry.width - geometry.padding.right}
+                  y2={y}
+                />
+                <text x={geometry.padding.left - 10} y={y + 4}>
+                  {formatNumber(value)}
+                </text>
               </g>
             )
           })}
 
-          <line className="chart-axis" x1={geometry.padding.left} y1={barLayout.zeroY} x2={geometry.width - geometry.padding.right} y2={barLayout.zeroY} />
-          <line className="chart-axis" x1={geometry.padding.left} y1={geometry.padding.top} x2={geometry.padding.left} y2={geometry.baseline} />
+          <line
+            className="chart-axis"
+            x1={geometry.padding.left}
+            y1={barLayout.zeroY}
+            x2={geometry.width - geometry.padding.right}
+            y2={barLayout.zeroY}
+          />
+          <line
+            className="chart-axis"
+            x1={geometry.padding.left}
+            y1={geometry.padding.top}
+            x2={geometry.padding.left}
+            y2={geometry.baseline}
+          />
 
           {isLine ? (
             <g>
@@ -166,7 +226,9 @@ export default function ChartPanel({ data, onUpload, disabled }) {
               {points.map((item, index) => (
                 <g key={`${item.label}-${index}`} className="chart-point">
                   <circle cx={geometry.xOf(index)} cy={geometry.yOf(item.value)} r="5.5" />
-                  <title>{item.label}: {formatNumber(item.value)}</title>
+                  <title>
+                    {item.label}: {formatNumber(item.value)}
+                  </title>
                 </g>
               ))}
             </g>
@@ -178,8 +240,17 @@ export default function ChartPanel({ data, onUpload, disabled }) {
                 const h = Math.max(Math.abs(barLayout.zeroY - geometry.yOf(item.value)), 2)
                 return (
                   <g key={`${item.label}-${index}`} className="chart-bar">
-                    <rect x={x} y={y} width={barLayout.barWidth} height={h} rx="8" fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    <title>{item.label}: {formatNumber(item.value)}</title>
+                    <rect
+                      x={x}
+                      y={y}
+                      width={barLayout.barWidth}
+                      height={h}
+                      rx="8"
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
+                    <title>
+                      {item.label}: {formatNumber(item.value)}
+                    </title>
                   </g>
                 )
               })}
@@ -189,7 +260,12 @@ export default function ChartPanel({ data, onUpload, disabled }) {
           {points.map((item, index) => {
             const cx = isLine ? geometry.xOf(index) : barLayout.barCenter(index)
             return (
-              <text key={`${item.label}-label-${index}`} className="chart-x-label" x={cx} y={geometry.height - 24}>
+              <text
+                key={`${item.label}-label-${index}`}
+                className="chart-x-label"
+                x={cx}
+                y={geometry.height - 24}
+              >
                 {truncateAxisLabel(item.label, points.length)}
               </text>
             )
@@ -200,10 +276,18 @@ export default function ChartPanel({ data, onUpload, disabled }) {
       {/* 与图同源的表格，便于核对 */}
       <div className="chart-table-wrap">
         <table className="chart-table">
-          <thead><tr><th>名称</th><th>数值</th></tr></thead>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>数值</th>
+            </tr>
+          </thead>
           <tbody>
             {points.map((item, index) => (
-              <tr key={`${item.label}-row-${index}`}><td>{item.label}</td><td>{formatNumber(item.value)}</td></tr>
+              <tr key={`${item.label}-row-${index}`}>
+                <td>{item.label}</td>
+                <td>{formatNumber(item.value)}</td>
+              </tr>
             ))}
           </tbody>
         </table>

@@ -8,7 +8,9 @@ export function syncTtsVoicePref(ttsVoice) {
   const mapped = normalizeTtsVoice(ttsVoice)
   try {
     localStorage.setItem(VOICE_PREF_KEY, mapped)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return mapped
 }
 
@@ -36,14 +38,18 @@ export function dismissGuide(userId) {
   if (!userId) return
   try {
     localStorage.setItem(guideDismissKey(userId), '1')
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function markJustRegistered(userId) {
   if (!userId) return
   try {
     sessionStorage.setItem('xiaowen-just-registered', String(userId))
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function consumeJustRegistered(userId) {
@@ -54,6 +60,8 @@ export function consumeJustRegistered(userId) {
       sessionStorage.removeItem('xiaowen-just-registered')
       return true
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return false
 }

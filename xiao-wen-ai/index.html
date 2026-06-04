@@ -10,14 +10,16 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <title>小文 · 智能语音助手</title>
     <script>
-      (function () {
+      ;(function () {
         try {
-          var mode = localStorage.getItem('xiaowen-theme-mode');
+          var mode = localStorage.getItem('xiaowen-theme-mode')
           if (mode === 'light' || mode === 'dark') {
-            document.documentElement.setAttribute('data-theme', mode);
+            document.documentElement.setAttribute('data-theme', mode)
           }
-        } catch (e) { /* ignore */ }
-      })();
+        } catch (e) {
+          /* ignore */
+        }
+      })()
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

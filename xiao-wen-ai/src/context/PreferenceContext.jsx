@@ -1,18 +1,8 @@
 /**
  * 用户偏好 Context：设置面板数据源，持久化，支持 WebSocket 多端同步。
  */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react'
-import {
-  loadPreferences,
-  normalizePreferences,
-  savePreferences,
-} from '../preferences'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { loadPreferences, normalizePreferences, savePreferences } from '../preferences'
 
 const PreferenceContext = createContext(null)
 const prefListeners = new Set()
@@ -42,11 +32,7 @@ export function PreferenceProvider({ children }) {
     [preferences, setPreferences, setPreferencesFromSync],
   )
 
-  return (
-    <PreferenceContext.Provider value={value}>
-      {children}
-    </PreferenceContext.Provider>
-  )
+  return <PreferenceContext.Provider value={value}>{children}</PreferenceContext.Provider>
 }
 
 export function usePreferences() {

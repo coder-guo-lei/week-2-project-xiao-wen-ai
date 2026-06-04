@@ -83,7 +83,10 @@
   cursor: pointer;
   background: linear-gradient(135deg, var(--accent-soft), var(--accent-strong));
   box-shadow: 0 12px 28px rgba(20, 122, 110, 0.28);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .chart-upload:hover {
@@ -91,8 +94,13 @@
   box-shadow: 0 16px 34px rgba(20, 122, 110, 0.34);
 }
 
-.chart-upload input { display: none; }
-.chart-upload.is-disabled { opacity: 0.58; cursor: not-allowed; }
+.chart-upload input {
+  display: none;
+}
+.chart-upload.is-disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
 
 .chart-summary {
   display: grid;
@@ -130,7 +138,7 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 18px;
   padding: 12px;
-  background: rgba(255,255,255,0.72);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .chart-canvas svg {
@@ -180,11 +188,15 @@
   transition: r 0.18s ease;
 }
 
-.chart-point:hover circle { r: 8; }
+.chart-point:hover circle {
+  r: 8;
+}
 
 .chart-bar rect {
   filter: drop-shadow(0 10px 16px rgba(20, 122, 110, 0.22));
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .chart-bar:hover rect {
@@ -204,7 +216,7 @@
   margin-top: 16px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
-  background: rgba(255,255,255,0.65);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .chart-table {
@@ -249,14 +261,28 @@
   }
 
   .chart-grid-row text,
-  .chart-x-label { fill: #94a3b8; }
-  .chart-axis { stroke: rgba(203, 213, 225, 0.34); }
-  .chart-table th { background: rgba(15, 23, 42, 0.96); }
+  .chart-x-label {
+    fill: #94a3b8;
+  }
+  .chart-axis {
+    stroke: rgba(203, 213, 225, 0.34);
+  }
+  .chart-table th {
+    background: rgba(15, 23, 42, 0.96);
+  }
 }
 
 @media (max-width: 720px) {
-  .chart-panel { padding: 16px; }
-  .chart-head { flex-direction: column; }
-  .chart-upload { width: 100%; }
-  .chart-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-panel {
+    padding: 16px;
+  }
+  .chart-head {
+    flex-direction: column;
+  }
+  .chart-upload {
+    width: 100%;
+  }
+  .chart-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

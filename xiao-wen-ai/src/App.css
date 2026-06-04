@@ -103,7 +103,10 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .app-settings-btn:hover {

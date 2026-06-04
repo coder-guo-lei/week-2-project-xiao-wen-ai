@@ -7,12 +7,21 @@
  */
 import './ModeBar.css'
 
-export default function ModeBar({ mode, modeLabel, worldState, quickActions = [], onQuickAction, variant = 'default' }) {
+export default function ModeBar({
+  mode,
+  modeLabel,
+  worldState,
+  quickActions = [],
+  onQuickAction,
+  variant = 'default',
+}) {
   // 是否为文字模拟世界模式（与后端 mode === 'world' 对齐）
   const isWorld = mode === 'world'
 
   return (
-    <div className={`mode-bar ${isWorld ? 'mode-bar--world' : ''} ${variant === 'top' ? 'mode-bar--top' : ''}`}>
+    <div
+      className={`mode-bar ${isWorld ? 'mode-bar--world' : ''} ${variant === 'top' ? 'mode-bar--top' : ''}`}
+    >
       {/* 左侧：状态点 + 主标题 + 副说明 */}
       <div className="mode-bar__main">
         <span className="mode-bar__dot" />

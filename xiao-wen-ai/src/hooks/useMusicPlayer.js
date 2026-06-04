@@ -72,13 +72,21 @@ export default function useMusicPlayer() {
 
   const setVolume = useCallback((vol) => {
     setVolumeState(vol)
-    try { localStorage.setItem(MUSIC_VOLUME_KEY, String(vol)) } catch { /* ignore */ }
+    try {
+      localStorage.setItem(MUSIC_VOLUME_KEY, String(vol))
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   /** 写盘并同步 ref，供 remove/clear/enqueue 共用 */
   const persistHistory = useCallback((next) => {
     playHistoryRef.current = next
-    try { localStorage.setItem(MUSIC_HISTORY_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+    try {
+      localStorage.setItem(MUSIC_HISTORY_KEY, JSON.stringify(next))
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   /** 点击列表「播放」：切到指定索引并准备自动播放 */
@@ -99,79 +107,86 @@ export default function useMusicPlayer() {
   }, [])
 
   /** 后端返回新歌：追加历史末尾并立即播放入队项；重复 url 不重复插入 */
-  const enqueueTrack = useCallback((url, title, meta = {}) => {
-    const entry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      url,
-      title,
-      provider: meta.provider || 'audio',
-      qishuiUrl: meta.qishuiUrl || '',
-      qishuiEmbedUrl: meta.qishuiEmbedUrl || '',
-    }
-    setPlayHistory((prev) => {
-      const next = prev.length && prev[prev.length - 1].url === entry.url
-        ? prev
-        : [...prev, entry].slice(-MAX_HISTORY)
+  const enqueueTrack = useCallback(
+    (url, title, meta = {}) => {
+      const entry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        url,
+        title,
+        provider: meta.provider || 'audio',
+        qishuiUrl: meta.qishuiUrl || '',
+        qishuiEmbedUrl: meta.qishuiEmbedUrl || '',
+      }
+      setPlayHistory((prev) => {
+        const next =
+          prev.length && prev[prev.length - 1].url === entry.url
+            ? prev
+            : [...prev, entry].slice(-MAX_HISTORY)
 
-      if (next !== prev) persistHistory(next)
-      playHistoryRef.current = next
-      const idx = next.length - 1
-      queueMicrotask(() => {
-        setPlayIndex(idx)
-        setPreviewUrl(url)
-        setSongName(title)
-        setCurrentProvider(entry.provider)
-        setQishuiUrl(entry.qishuiUrl)
-        setQishuiEmbedUrl(entry.qishuiEmbedUrl)
-        setAudioError('')
-        setIsPlaying(true)
+        if (next !== prev) persistHistory(next)
+        playHistoryRef.current = next
+        const idx = next.length - 1
+        queueMicrotask(() => {
+          setPlayIndex(idx)
+          setPreviewUrl(url)
+          setSongName(title)
+          setCurrentProvider(entry.provider)
+          setQishuiUrl(entry.qishuiUrl)
+          setQishuiEmbedUrl(entry.qishuiEmbedUrl)
+          setAudioError('')
+          setIsPlaying(true)
+        })
+        return next
       })
-      return next
-    })
-  }, [persistHistory])
+    },
+    [persistHistory],
+  )
 
   /** 删除一条历史；若删的是当前曲则跳到相邻曲 */
-  const removeTrack = useCallback((idx) => {
-    const hist = playHistoryRef.current
-    if (idx < 0 || idx >= hist.length) return
+  const removeTrack = useCallback(
+    (idx) => {
+      const hist = playHistoryRef.current
+      if (idx < 0 || idx >= hist.length) return
 
-    const removingCurrent = idx === playIndex
-    const next = hist.filter((_, i) => i !== idx)
-    persistHistory(next)
-    setPlayHistory(next)
+      const removingCurrent = idx === playIndex
+      const next = hist.filter((_, i) => i !== idx)
+      persistHistory(next)
+      setPlayHistory(next)
 
-    if (!next.length) {
-      setPlayIndex(-1)
-      setPreviewUrl('')
-      setSongName('未知歌曲')
-      setCurrentProvider('audio')
-      setQishuiUrl('')
-      setQishuiEmbedUrl('')
-      setAudioError('')
-      setIsPlaying(false)
-      setCurrentTime(0)
-      setDuration(0)
-      return
-    }
+      if (!next.length) {
+        setPlayIndex(-1)
+        setPreviewUrl('')
+        setSongName('未知歌曲')
+        setCurrentProvider('audio')
+        setQishuiUrl('')
+        setQishuiEmbedUrl('')
+        setAudioError('')
+        setIsPlaying(false)
+        setCurrentTime(0)
+        setDuration(0)
+        return
+      }
 
-    if (removingCurrent) {
-      const nextIdx = Math.min(idx, next.length - 1)
-      const item = next[nextIdx]
-      setPlayIndex(nextIdx)
-      setPreviewUrl(item.url)
-      setSongName(item.title)
-      setCurrentProvider(item.provider || 'audio')
-      setQishuiUrl(item.qishuiUrl || '')
-      setQishuiEmbedUrl(item.qishuiEmbedUrl || '')
-      setAudioError('')
-      setIsPlaying(true)
-      setCurrentTime(0)
-      setDuration(0)
-      return
-    }
+      if (removingCurrent) {
+        const nextIdx = Math.min(idx, next.length - 1)
+        const item = next[nextIdx]
+        setPlayIndex(nextIdx)
+        setPreviewUrl(item.url)
+        setSongName(item.title)
+        setCurrentProvider(item.provider || 'audio')
+        setQishuiUrl(item.qishuiUrl || '')
+        setQishuiEmbedUrl(item.qishuiEmbedUrl || '')
+        setAudioError('')
+        setIsPlaying(true)
+        setCurrentTime(0)
+        setDuration(0)
+        return
+      }
 
-    if (idx < playIndex) setPlayIndex((prev) => prev - 1)
-  }, [persistHistory, playIndex])
+      if (idx < playIndex) setPlayIndex((prev) => prev - 1)
+    },
+    [persistHistory, playIndex],
+  )
 
   /** 清空列表与当前播放 */
   const clearHistory = useCallback(() => {
@@ -225,13 +240,16 @@ export default function useMusicPlayer() {
   }, [playIndex, jumpToTrack])
 
   /** 点击进度条轨道：按点击水平位置比例设置 currentTime */
-  const handleSeek = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const percent = (e.clientX - rect.left) / rect.width
-    if (audioRef.current && duration > 0) {
-      audioRef.current.currentTime = percent * duration
-    }
-  }, [duration])
+  const handleSeek = useCallback(
+    (e) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const percent = (e.clientX - rect.left) / rect.width
+      if (audioRef.current && duration > 0) {
+        audioRef.current.currentTime = percent * duration
+      }
+    },
+    [duration],
+  )
 
   /** 告别或切模式时：清空当前播放展示（不删历史列表） */
   const reset = useCallback(() => {
@@ -252,7 +270,9 @@ export default function useMusicPlayer() {
     onEnded: () => setIsPlaying(false),
     onLoadedMetadata: (e) => setDuration(e.target.duration || 0),
     onError: () => {
-      setAudioError('这首歌的音频地址暂时不能播放，可能是版权或外链失效。你可以说“换一首”或搜索其它歌曲。')
+      setAudioError(
+        '这首歌的音频地址暂时不能播放，可能是版权或外链失效。你可以说“换一首”或搜索其它歌曲。',
+      )
       setIsPlaying(false)
     },
   }

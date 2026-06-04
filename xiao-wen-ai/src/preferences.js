@@ -50,7 +50,9 @@ export function savePreferences(prefs) {
   storage.set(PREFS_STORAGE_KEY, JSON.stringify(next))
   try {
     localStorage.setItem(LEGACY_VOICE_KEY, next.ttsVoice)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return next
 }
 

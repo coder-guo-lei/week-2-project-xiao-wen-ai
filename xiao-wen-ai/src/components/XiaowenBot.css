@@ -76,17 +76,44 @@
   animation: xw-wave 0.75s ease-in-out infinite alternate;
 }
 
-.xiaowen-bot__voice-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
-.xiaowen-bot__voice-wave span:nth-child(2) { height: 10px; animation-delay: 0.08s; }
-.xiaowen-bot__voice-wave span:nth-child(3) { height: 14px; animation-delay: 0.16s; }
-.xiaowen-bot__voice-wave span:nth-child(4) { height: 18px; animation-delay: 0.24s; }
-.xiaowen-bot__voice-wave span:nth-child(5) { height: 14px; animation-delay: 0.16s; }
-.xiaowen-bot__voice-wave span:nth-child(6) { height: 10px; animation-delay: 0.08s; }
-.xiaowen-bot__voice-wave span:nth-child(7) { height: 6px; animation-delay: 0s; }
+.xiaowen-bot__voice-wave span:nth-child(1) {
+  height: 6px;
+  animation-delay: 0s;
+}
+.xiaowen-bot__voice-wave span:nth-child(2) {
+  height: 10px;
+  animation-delay: 0.08s;
+}
+.xiaowen-bot__voice-wave span:nth-child(3) {
+  height: 14px;
+  animation-delay: 0.16s;
+}
+.xiaowen-bot__voice-wave span:nth-child(4) {
+  height: 18px;
+  animation-delay: 0.24s;
+}
+.xiaowen-bot__voice-wave span:nth-child(5) {
+  height: 14px;
+  animation-delay: 0.16s;
+}
+.xiaowen-bot__voice-wave span:nth-child(6) {
+  height: 10px;
+  animation-delay: 0.08s;
+}
+.xiaowen-bot__voice-wave span:nth-child(7) {
+  height: 6px;
+  animation-delay: 0s;
+}
 
 @keyframes xw-wave {
-  from { transform: scaleY(0.55); opacity: 0.65; }
-  to { transform: scaleY(1.35); opacity: 1; }
+  from {
+    transform: scaleY(0.55);
+    opacity: 0.65;
+  }
+  to {
+    transform: scaleY(1.35);
+    opacity: 1;
+  }
 }
 
 /* ── 幽灵底座（几乎无框，角色为主体） ── */
@@ -111,8 +138,13 @@
 }
 
 @keyframes xw-idle-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .xiaowen-bot--dragging .xiaowen-bot__card,
@@ -162,8 +194,7 @@
   height: auto;
   display: block;
   overflow: visible;
-  filter:
-    drop-shadow(0 14px 32px rgba(124, 92, 252, 0.4))
+  filter: drop-shadow(0 14px 32px rgba(124, 92, 252, 0.4))
     drop-shadow(0 0 20px rgba(34, 211, 238, 0.15));
 }
 
@@ -191,7 +222,9 @@
 }
 
 @keyframes xw-rings-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .xiaowen-bot__ring-dash {
@@ -199,7 +232,9 @@
 }
 
 @keyframes xw-ring-dash {
-  to { stroke-dashoffset: -34; }
+  to {
+    stroke-dashoffset: -34;
+  }
 }
 
 /* 电路 / 耳罩 / 核心呼吸 */
@@ -216,8 +251,15 @@
 }
 
 @keyframes xw-pulse-flow {
-  0%, 100% { opacity: 0.45; stroke-dashoffset: 0; }
-  50% { opacity: 1; stroke-dashoffset: 4; }
+  0%,
+  100% {
+    opacity: 0.45;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    opacity: 1;
+    stroke-dashoffset: 4;
+  }
 }
 
 .xiaowen-bot__forehead-strip {
@@ -225,8 +267,13 @@
 }
 
 @keyframes xw-forehead-glow {
-  0%, 100% { opacity: 0.75; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .xiaowen-bot__limb--arm-l ellipse:nth-child(2),
@@ -235,8 +282,13 @@
 }
 
 @keyframes xw-cuff-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* 浮空手/脚微动 */
@@ -261,13 +313,23 @@
 }
 
 @keyframes xw-limb-float-l {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-2px, -3px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-2px, -3px);
+  }
 }
 
 @keyframes xw-limb-float-r {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(2px, -3px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(2px, -3px);
+  }
 }
 
 .xiaowen-bot--speaking .xiaowen-bot__pulse {
@@ -279,8 +341,13 @@
 }
 
 @keyframes xw-circuit-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .xiaowen-bot__ear > :nth-child(3),
@@ -294,13 +361,23 @@
 }
 
 @keyframes xw-helmet-breathe {
-  0%, 100% { filter: drop-shadow(0 0 6px rgba(34,211,238,0.15)); }
-  50% { filter: drop-shadow(0 0 14px rgba(167,139,250,0.3)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.15));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(167, 139, 250, 0.3));
+  }
 }
 
 @keyframes xw-ear-glow {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .xiaowen-bot__core circle:nth-child(4) {
@@ -312,13 +389,22 @@
 }
 
 @keyframes xw-core-pulse {
-  0%, 100% { opacity: 0.82; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes xw-core-speak {
-  from { transform: scale(0.92); }
-  to { transform: scale(1.12); }
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: scale(1.12);
+  }
 }
 
 .xiaowen-bot__body {
@@ -332,8 +418,13 @@
 }
 
 @keyframes xw-joint-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .xiaowen-bot__antenna-tip {
@@ -341,8 +432,13 @@
 }
 
 @keyframes xw-antenna-glow {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5)); }
-  50% { filter: drop-shadow(0 0 12px rgba(124, 92, 252, 0.85)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(124, 92, 252, 0.85));
+  }
 }
 
 .xiaowen-bot__eye-mount {
@@ -359,8 +455,12 @@
 }
 
 @keyframes xw-speak-shake {
-  from { transform: rotate(-2deg); }
-  to { transform: rotate(2deg); }
+  from {
+    transform: rotate(-2deg);
+  }
+  to {
+    transform: rotate(2deg);
+  }
 }
 
 /* ── 拖拽 ── */
@@ -414,7 +514,9 @@
 }
 
 @keyframes xw-pupil-orbit-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .xiaowen-bot--inertia .xiaowen-bot__pupil-dazed,
@@ -424,7 +526,9 @@
 }
 
 @keyframes xw-pupil-inner-counter {
-  to { transform: rotate(-360deg); }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 .xiaowen-bot--inertia .xiaowen-bot__figure {
@@ -432,7 +536,9 @@
 }
 
 @keyframes xw-figure-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .xiaowen-bot--dizzy .xiaowen-bot__figure {
@@ -440,8 +546,13 @@
 }
 
 @keyframes xw-figure-dizzy {
-  0%, 100% { transform: rotate(-7deg) translateX(-2px); }
-  50% { transform: rotate(7deg) translateX(2px); }
+  0%,
+  100% {
+    transform: rotate(-7deg) translateX(-2px);
+  }
+  50% {
+    transform: rotate(7deg) translateX(2px);
+  }
 }
 
 .xiaowen-bot--dizzy .xiaowen-bot__svg {
@@ -466,13 +577,23 @@
 }
 
 @keyframes xw-peek-left {
-  0%, 100% { transform: translateX(-68px) translateY(5px); }
-  50% { transform: translateX(-56px) translateY(2px); }
+  0%,
+  100% {
+    transform: translateX(-68px) translateY(5px);
+  }
+  50% {
+    transform: translateX(-56px) translateY(2px);
+  }
 }
 
 @keyframes xw-peek-right {
-  0%, 100% { transform: translateX(68px) translateY(5px); }
-  50% { transform: translateX(56px) translateY(2px); }
+  0%,
+  100% {
+    transform: translateX(68px) translateY(5px);
+  }
+  50% {
+    transform: translateX(56px) translateY(2px);
+  }
 }
 
 .xiaowen-bot__card--peek.xiaowen-bot__card--curious,
@@ -527,8 +648,12 @@
   transition: opacity 0.22s ease;
 }
 
-.xiaowen-bot__mouth--neutral { opacity: 1; }
-.xiaowen-bot__mouth--grabbed { opacity: 0; }
+.xiaowen-bot__mouth--neutral {
+  opacity: 1;
+}
+.xiaowen-bot__mouth--grabbed {
+  opacity: 0;
+}
 
 .xiaowen-bot__card--grabbed .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--grabbed) {
   opacity: 0 !important;
@@ -538,7 +663,9 @@
   opacity: 1 !important;
 }
 
-.xiaowen-bot__mouth--peek { opacity: 0; }
+.xiaowen-bot__mouth--peek {
+  opacity: 0;
+}
 
 .xiaowen-bot__card--peek .xiaowen-bot__mouth:not(.xiaowen-bot__mouth--peek) {
   opacity: 0 !important;
@@ -555,19 +682,34 @@
   opacity: 0;
 }
 
-.xiaowen-bot__card--happy .xiaowen-bot__mouth--happy { opacity: 1; }
-.xiaowen-bot__card--curious .xiaowen-bot__mouth--curious { opacity: 1; }
-.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--sleepy { opacity: 1; }
-.xiaowen-bot__card--surprised .xiaowen-bot__mouth--surprised { opacity: 1; }
+.xiaowen-bot__card--happy .xiaowen-bot__mouth--happy {
+  opacity: 1;
+}
+.xiaowen-bot__card--curious .xiaowen-bot__mouth--curious {
+  opacity: 1;
+}
+.xiaowen-bot__card--sleepy .xiaowen-bot__mouth--sleepy {
+  opacity: 1;
+}
+.xiaowen-bot__card--surprised .xiaowen-bot__mouth--surprised {
+  opacity: 1;
+}
 
 .xiaowen-bot__card--happy .xiaowen-bot__svg {
   animation: xw-nod 0.65s ease;
 }
 
 @keyframes xw-nod {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(3px); }
-  70% { transform: translateY(-2px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(3px);
+  }
+  70% {
+    transform: translateY(-2px);
+  }
 }
 
 .xiaowen-bot__card--curious {
@@ -590,8 +732,7 @@
 }
 
 .xiaowen-bot--speaking .xiaowen-bot__svg {
-  filter:
-    drop-shadow(0 14px 32px rgba(124, 92, 252, 0.45))
+  filter: drop-shadow(0 14px 32px rgba(124, 92, 252, 0.45))
     drop-shadow(0 0 28px rgba(34, 211, 238, 0.35));
 }
 

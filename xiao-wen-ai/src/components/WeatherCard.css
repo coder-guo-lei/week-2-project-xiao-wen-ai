@@ -67,7 +67,9 @@
   flex-wrap: wrap;
   margin-top: 2px;
 }
-.wc-dot { opacity: 0.5; }
+.wc-dot {
+  opacity: 0.5;
+}
 
 .wc-panel {
   text-align: left;

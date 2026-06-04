@@ -9,7 +9,11 @@ import { useCallback, useEffect, useState } from 'react'
 import './ImagePreview.css'
 
 function safeFilenameFromPrompt(text) {
-  const base = (text || 'xiaowen-image').slice(0, 80).replace(/[/\\?%*:|"<>]/g, '_').trim() || 'xiaowen-image'
+  const base =
+    (text || 'xiaowen-image')
+      .slice(0, 80)
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .trim() || 'xiaowen-image'
   return base
 }
 
@@ -39,7 +43,10 @@ export default function ImagePreview({ imageUrl, prompt, generating = false, ela
       if (!res.ok) throw new Error('fetch failed')
       const blob = await res.blob()
       const ext = blob.type?.split('/')[1]
-      const finalName = ext && ext !== 'octet-stream' ? `${safeFilenameFromPrompt(prompt)}.${ext.split('+')[0]}` : name
+      const finalName =
+        ext && ext !== 'octet-stream'
+          ? `${safeFilenameFromPrompt(prompt)}.${ext.split('+')[0]}`
+          : name
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -101,10 +108,22 @@ export default function ImagePreview({ imageUrl, prompt, generating = false, ela
           aria-label="大图预览"
           onClick={closeLightbox}
         >
-          <button type="button" className="ip-lightbox-close" onClick={closeLightbox} aria-label="关闭">
+          <button
+            type="button"
+            className="ip-lightbox-close"
+            onClick={closeLightbox}
+            aria-label="关闭"
+          >
             ×
           </button>
-          <button type="button" className="ip-lightbox-download" onClick={(e) => { e.stopPropagation(); handleDownload() }}>
+          <button
+            type="button"
+            className="ip-lightbox-download"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDownload()
+            }}
+          >
             下载图片
           </button>
           <div className="ip-lightbox-inner" onClick={(e) => e.stopPropagation()}>
